@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/migration-source/*.sqlite
+/migration-source/*.sqlite-journal
+
+# local QA credentials, never commit
+QA-Accounts.md
+.local-dev/
