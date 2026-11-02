@@ -1,6 +1,6 @@
 /// <reference path="../pb_data/types.d.ts" />
 migrate((app) => {
-  const collection = app.findCollectionByNameOrId("pbc_987760854")
+  const collection = app.findCollectionByNameOrId("ttmcobuild_chat_messages")
 
   // add field
   collection.fields.addAt(9, new Field({
@@ -34,7 +34,7 @@ migrate((app) => {
 
   return app.save(collection)
 }, (app) => {
-  const collection = app.findCollectionByNameOrId("pbc_987760854")
+  const collection = app.findCollectionByNameOrId("ttmcobuild_chat_messages")
 
   // remove field
   collection.fields.removeById("file1204091606")
