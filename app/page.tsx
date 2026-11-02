@@ -8,7 +8,7 @@ export default async function Home() {
   if (session) redirect("/dashboard");
 
   return (
-    <MarketplaceLayout>
+    <MarketplaceLayout compactForPromo>
       <HomePage />
     </MarketplaceLayout>
   );

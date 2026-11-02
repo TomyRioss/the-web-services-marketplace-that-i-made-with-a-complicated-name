@@ -32,7 +32,7 @@ export function RegisterForm({ googleError }: { googleError?: string }) {
 
   return (
     <main className="flex min-h-screen flex-col items-center bg-[#191919] px-4 pt-8 pb-10 text-white sm:pt-12 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(420px,0.9fr)] lg:grid-rows-[1fr_auto] lg:items-center lg:gap-x-[clamp(3rem,7vw,8rem)] lg:px-[clamp(3rem,8vw,8rem)] lg:py-8">
-      <aside aria-labelledby="register-promo-title" className="relative hidden min-h-[calc(100svh-4rem)] flex-col justify-center border-r border-white/10 pr-10 lg:row-span-2 lg:flex xl:pr-16">
+      <aside aria-labelledby="register-promo-title" className="relative hidden min-h-[calc(100svh-4rem)] w-full min-w-0 flex-col justify-center self-stretch border-r border-white/10 pr-10 lg:row-span-2 lg:flex xl:pr-16">
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
           <CursorGrid
             cellSize={44}

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Bell, ChevronDown, ClipboardList, Headset, LogOut, MessageCircle, Shield, Star, Store } from "lucide-react";
 import { signOut } from "@/app/actions/auth";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -76,6 +77,26 @@ export function DashboardPillNav({
 
   return (
     <nav aria-label={title} className="relative w-full shrink-0" style={{ height: `${spacerHeight}px` }}>
+      {marketplace && (
+        <div aria-label="Anuncios" className="pointer-events-none fixed inset-0 z-40 hidden min-[1760px]:block">
+          <Image
+            src="/images/devta-anuncio.png"
+            alt="Imaginá esa web fuera de tu cabeza. Tres clicks y arrancamos."
+            width={480}
+            height={320}
+            className="absolute left-[calc(50%-860px)] top-9 h-24 w-52 rounded-2xl object-cover"
+            priority
+          />
+          <Image
+            src="/images/devta-anuncio-lanzamiento.png"
+            alt="Promoción de lanzamiento: 50% de descuento en todos los servicios hasta el 22/11."
+            width={1664}
+            height={936}
+            className="absolute right-[calc(50%-860px)] top-9 h-24 w-52 rounded-2xl object-cover"
+            priority
+          />
+        </div>
+      )}
       <div ref={pillRef} className={`fixed inset-x-3 top-12 z-50 mx-auto flex w-auto max-w-7xl items-center rounded-2xl border border-white/10 bg-[#171717] px-3 py-3 text-white shadow-[0_12px_28px_-18px_rgba(0,0,0,0.8)] md:inset-x-5 md:top-[52px] md:px-4 ${marketplace ? "flex-wrap justify-center gap-1 md:flex-nowrap md:gap-8 lg:gap-10" : "flex-wrap gap-3 md:grid md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]"}`}>
         {marketplace ? (
           <>

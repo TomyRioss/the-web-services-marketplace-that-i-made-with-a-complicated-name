@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth/session";
 import { Button } from "@/components/ui/button";
 import { ChromeLaptopDivider } from "@/components/chrome-laptop/ChromeLaptopDivider";
 import Aurora from "@/components/ui/Aurora";
+import CursorGrid from "@/components/ui/CursorGrid";
 import ShapeGrid from "@/components/ShapeGrid";
 
 const serviceTypes = [
@@ -68,6 +69,22 @@ export default async function MarketplacePage() {
             opacity={0.78}
             scale={0.52}
             speed={0.72}
+          />
+        </div>
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
+          <CursorGrid
+            cellSize={68}
+            color="#C9E94F"
+            gridColor="#C9E94F"
+            radius={180}
+            maxOpacity={0.32}
+            fillOpacity={0.018}
+            gridOpacity={0.035}
+            spotlight={0.58}
+            edgeFade={0.4}
+            clickPulse={false}
+            intro={false}
+            dpr={1}
           />
         </div>
         <div className={`relative z-20 mx-auto w-full max-w-7xl lg:max-w-none ${session ? "-translate-y-8 lg:-translate-y-24" : "-translate-y-[212px] sm:-translate-y-[212px] md:-translate-y-8 lg:-translate-y-24"}`}>

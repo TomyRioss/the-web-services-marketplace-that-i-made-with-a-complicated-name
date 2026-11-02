@@ -9,8 +9,10 @@ import { SiteFooter } from "@/components/SiteFooter";
 
 export default async function MarketplaceLayout({
   children,
+  compactForPromo = false,
 }: {
   children: React.ReactNode;
+  compactForPromo?: boolean;
 }) {
   const session = await getSession();
 
@@ -27,7 +29,7 @@ export default async function MarketplaceLayout({
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <div aria-hidden="true" className="h-[108px] shrink-0 bg-black md:h-[120px] md:bg-secondary/40" />
+      <div aria-hidden="true" className={`shrink-0 bg-black md:bg-secondary/40 ${compactForPromo ? "h-[72px] md:h-[84px]" : "h-[108px] md:h-[120px]"}`} />
       <header className="fixed inset-x-0 top-9 z-50">
         <div>
           <div className="flex h-[72px] w-full items-center justify-between bg-secondary/40 px-3 md:hidden">
