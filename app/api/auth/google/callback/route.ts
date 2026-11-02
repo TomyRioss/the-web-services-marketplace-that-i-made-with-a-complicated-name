@@ -6,7 +6,6 @@ import { ensurePocketBaseAdmin, pbFilterValue } from "@/lib/pocketbase";
 import type { Role } from "@/lib/data-types";
 import { hashPassword } from "@/lib/auth/password";
 import { createSession } from "@/lib/auth/session";
-import { isValidPhoneNumber, normalizePhone } from "@/lib/auth/phone";
 
 const googleJwks = createRemoteJWKSet(new URL("https://www.googleapis.com/oauth2/v3/certs"));
 
@@ -18,7 +17,6 @@ function failureRedirect(request: NextRequest, source: string, error: string) {
 export async function GET(request: NextRequest) {
   const cookieStore = await cookies();
   const source = cookieStore.get("google_oauth_source")?.value === "login" ? "login" : "register";
-  const phone = cookieStore.get("google_oauth_phone")?.value ?? "";
   const expectedState = cookieStore.get("google_oauth_state")?.value;
   const nonce = cookieStore.get("google_oauth_nonce")?.value;
   const verifier = cookieStore.get("google_oauth_verifier")?.value;
@@ -35,7 +33,6 @@ export async function GET(request: NextRequest) {
   if (providerError || !code || !state || !expectedState || state !== expectedState || !nonce || !verifier) {
     return failureRedirect(request, source, "google_failed");
   }
-  if (source === "register" && !isValidPhoneNumber(phone)) return failureRedirect(request, source, "phone_required");
   if (!clientId || !clientSecret) {
     return failureRedirect(request, source, "google_unconfigured");
   }
@@ -87,7 +84,7 @@ export async function GET(request: NextRequest) {
           email,
           passwordHash: await hashPassword(randomUUID() + randomUUID()),
           fullName: typeof payload.name === "string" ? payload.name : "",
-          phone: source === "register" ? phone : "",
+          phone: "",
           role: "CLIENTE",
           createdAt: now,
           updatedAt: now,
@@ -99,16 +96,6 @@ export async function GET(request: NextRequest) {
         profile = existing.items[0];
         if (!profile) throw new Error("Could not create Google profile");
       }
-    }
-
-    if (source === "register" && profile.phone && normalizePhone(profile.phone) !== normalizePhone(phone)) {
-      return failureRedirect(request, source, "google_phone_invalid");
-    }
-    if (source === "register" && !profile.phone) {
-      profile = await pb.collection("ttmcobuild_profiles").update(profile.id, {
-        phone,
-        updatedAt: new Date().toISOString(),
-      });
     }
 
     await createSession({ userId: profile.id, role: profile.role as Role });

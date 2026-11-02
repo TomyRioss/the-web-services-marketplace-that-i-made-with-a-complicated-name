@@ -24,15 +24,11 @@ export function RegisterForm({ googleError }: { googleError?: string }) {
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const authError = googleError === "google_unconfigured"
     ? "El acceso con Google todavía no está configurado."
-    : googleError === "phone_required"
-      ? "Ingresá un teléfono válido para continuar."
-      : googleError === "google_account_not_found"
-        ? "No encontramos esa cuenta. Completá tus datos para registrarte."
-      : googleError === "google_phone_invalid"
-        ? "El teléfono no coincide con el asociado a esta cuenta."
-    : googleError === "google_failed"
-      ? "No pudimos completar el acceso con Google. Inténtalo otra vez."
-      : null;
+    : googleError === "google_account_not_found"
+      ? "No encontramos esa cuenta. Completá tus datos para registrarte."
+      : googleError === "google_failed"
+        ? "No pudimos completar el acceso con Google. Inténtalo otra vez."
+        : null;
 
   function continueWithEmail(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -42,15 +38,6 @@ export function RegisterForm({ googleError }: { googleError?: string }) {
     }
     setPhoneError(null);
     setStep("details");
-  }
-
-  function continueWithGoogle(event: FormEvent<HTMLFormElement>) {
-    if (!isValidPhoneNumber(phone)) {
-      event.preventDefault();
-      setPhoneError("Ingresá un teléfono válido para continuar.");
-      return;
-    }
-    setPhoneError(null);
   }
 
   return (
@@ -110,9 +97,8 @@ export function RegisterForm({ googleError }: { googleError?: string }) {
           <div className="mx-auto flex w-full max-w-[376px] flex-col">
             {step === "email" ? (
               <>
-                <form action="/api/auth/google" method="post" onSubmit={continueWithGoogle}>
+                <form action="/api/auth/google" method="post" onSubmit={() => setPhoneError(null)}>
                   <input type="hidden" name="source" value="register" />
-                  <input type="hidden" name="phone" value={phone} />
                   <button type="submit" className="flex h-10 w-full items-center justify-center gap-3 rounded-md border border-white/25 px-3 text-sm font-medium text-white transition-colors hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9E94F]">
                     <FcGoogle aria-hidden="true" className="size-[18px]" />
                     Continuar con Google
