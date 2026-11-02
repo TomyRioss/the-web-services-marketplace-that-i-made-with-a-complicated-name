@@ -13,6 +13,7 @@ Que el cliente pueda reconocer si su pedido espera un desarrollador o ya tiene u
 
 - En Pedidos activos y Mis pedidos, un pedido sin dev muestra «Buscando desarrollador» y «Te avisaremos cuando alguien sea asignado». No ofrece acceso al chat.
 - Un pedido asignado muestra el nombre del dev y «Ya podes conversar sobre tu pedido», con la accion «Abrir chat».
+- Los pedidos sin dev asignado no aparecen en la lista Chats del cliente.
 - El estado operativo existente del pedido se conserva y se muestra aparte del estado de asignacion.
 - El servidor bloquea la lectura, escritura y conexion al chat del cliente mientras no exista un dev asignado. El equipo y el dev asignado conservan el acceso permitido actualmente.
 - Se usa la paleta del proyecto indicada por el usuario, incluido el acento lima `#C9E94F`, y Michroma para encabezados y CTA.
