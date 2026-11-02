@@ -12,6 +12,7 @@ import {
 import { FaWhatsapp } from "react-icons/fa";
 import { getSession } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
+import { UserDeveloperToggle } from "./UserDeveloperToggle";
 
 const roleLabel: Record<string, string> = {
   CLIENTE: "Cliente",
@@ -22,7 +23,7 @@ const roleLabel: Record<string, string> = {
 
 export default async function AdminUsersPage() {
   const session = await getSession();
-  if (session?.role !== "OWNER") redirect(session ? "/admin/orders" : "/login");
+  if (session?.role !== "OWNER" && session?.role !== "ADMIN") redirect(session ? "/admin/orders" : "/login");
   const users = await getAllUsers();
 
   return (
@@ -45,6 +46,7 @@ export default async function AdminUsersPage() {
                     <TableHead>Rol</TableHead>
                     <TableHead>Pedidos</TableHead>
                     <TableHead>Alta</TableHead>
+                    <TableHead>Acceso</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -74,6 +76,11 @@ export default async function AdminUsersPage() {
                       </TableCell>
                       <TableCell>{user._count.orders}</TableCell>
                       <TableCell>{user.createdAt.toLocaleDateString("es-AR")}</TableCell>
+                      <TableCell>
+                        {user.role === "CLIENTE" || user.role === "DEV" ? (
+                          <UserDeveloperToggle userId={user.id} enabled={user.role === "DEV"} />
+                        ) : null}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

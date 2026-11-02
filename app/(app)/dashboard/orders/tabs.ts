@@ -1,7 +1,7 @@
 import type { OrdersTab } from "@/app/actions/dashboard";
 
 export const TABS: { id: OrdersTab; label: string }[] = [
-  { id: "progreso", label: "En progreso" },
+  { id: "progreso", label: "Activos" },
   { id: "hechos", label: "Hechos" },
   { id: "cancelados", label: "Cancelados" },
   { id: "todos", label: "Todos" },

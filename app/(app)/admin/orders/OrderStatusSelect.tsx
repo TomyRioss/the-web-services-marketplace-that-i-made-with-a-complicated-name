@@ -14,7 +14,9 @@ import type { OrderStatus } from "@/lib/data-types";
 const statusLabel: Record<OrderStatus, string> = {
   PENDING: "Pendiente",
   IN_PROGRESS: "En progreso",
-  DONE: "Terminado",
+  REVIEW: "En revisión",
+  APPROVED: "Aprobado por cliente",
+  DONE: "Cerrado",
   CANCELLED: "Cancelado",
 };
 
@@ -35,7 +37,7 @@ export function OrderStatusSelect({ orderId, status }: { orderId: string; status
         <SelectValue>{(value: OrderStatus) => statusLabel[value]}</SelectValue>
       </SelectTrigger>
       <SelectContent>
-        {Object.entries(statusLabel).map(([value, label]) => (
+        {Object.entries(statusLabel).filter(([value]) => value !== "DONE" && value !== "REVIEW" && value !== "APPROVED").map(([value, label]) => (
           <SelectItem key={value} value={value}>
             {label}
           </SelectItem>

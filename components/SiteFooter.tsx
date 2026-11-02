@@ -34,7 +34,7 @@ export function SiteFooter() {
 
           {Object.entries(footerLinks).map(([heading, links]) => (
             <nav key={heading} aria-label={heading}>
-              <h2 className="font-[family-name:var(--font-michroma)] text-[10px] uppercase tracking-[0.14em] text-white/80">
+              <h2 className="font-heading text-[10px] uppercase tracking-[0.14em] text-white/80">
                 {heading}
               </h2>
               <ul className="mt-4 space-y-3">

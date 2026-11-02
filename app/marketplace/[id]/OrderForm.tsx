@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { createOrder } from "@/app/actions/marketplace";
 import { normalizeWebUrl } from "@/lib/normalize-web-url";
+import type { CommunicationPreference } from "@/lib/data-types";
 
 const MAX_IMAGES = 5;
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
@@ -14,6 +15,7 @@ const MAX_REFERENCE_LINKS = 5;
 
 export function OrderForm({ serviceId }: { serviceId: string }) {
   const [message, setMessage] = useState("");
+  const [communicationPreference, setCommunicationPreference] = useState<CommunicationPreference>("TALK_TO_ME");
   const [links, setLinks] = useState<string[]>([""]);
   const [files, setFiles] = useState<File[]>([]);
   const [orderId, setOrderId] = useState<string | null>(null);
@@ -58,7 +60,7 @@ export function OrderForm({ serviceId }: { serviceId: string }) {
       try {
         let currentOrderId = orderId;
         if (!currentOrderId) {
-          const order = await createOrder(serviceId, message, normalizedLinks);
+          const order = await createOrder(serviceId, message, normalizedLinks, communicationPreference);
           currentOrderId = order.id;
           setOrderId(currentOrderId);
         }
@@ -99,6 +101,37 @@ export function OrderForm({ serviceId }: { serviceId: string }) {
         aria-label="Detalles de tu pedido"
         className="min-h-32 resize-y"
       />
+
+      <fieldset className="flex flex-col gap-2" disabled={isPending || Boolean(orderId)}>
+        <legend className="text-xs font-medium text-muted-foreground">Preferencias</legend>
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          Si elegís la primera opción, el desarrollador te hablará, te mantendrá al tanto y consultará cada paso relevante para que seas parte activa del proceso. Si elegís la segunda, intentará contactarte lo menos posible y tomará decisiones por su cuenta.
+        </p>
+        <div className="flex flex-wrap gap-2" aria-label="Preferencia de comunicación">
+          <label className={`cursor-pointer rounded-full border px-3 py-2 text-xs transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent-green ${communicationPreference === "TALK_TO_ME" ? "border-accent-green bg-accent-green text-black" : "border-white/15 bg-[#121212] text-white hover:border-accent-green/60"}`}>
+            <input
+              type="radio"
+              name="communicationPreference"
+              value="TALK_TO_ME"
+              checked={communicationPreference === "TALK_TO_ME"}
+              onChange={() => setCommunicationPreference("TALK_TO_ME")}
+              className="sr-only"
+            />
+            1. Quiero que me hablen
+          </label>
+          <label className={`cursor-pointer rounded-full border px-3 py-2 text-xs transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent-green ${communicationPreference === "AUTONOMOUS" ? "border-accent-green bg-accent-green text-black" : "border-white/15 bg-[#121212] text-white hover:border-accent-green/60"}`}>
+            <input
+              type="radio"
+              name="communicationPreference"
+              value="AUTONOMOUS"
+              checked={communicationPreference === "AUTONOMOUS"}
+              onChange={() => setCommunicationPreference("AUTONOMOUS")}
+              className="sr-only"
+            />
+            2. Trabajo autónomo
+          </label>
+        </div>
+      </fieldset>
 
       <div className="flex flex-col gap-2">
         <p className="text-xs font-medium text-muted-foreground">Enlaces de referencia</p>

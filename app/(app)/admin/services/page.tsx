@@ -5,12 +5,11 @@ import { ServiceForm } from "./ServiceForm";
 import { DeleteServiceButton } from "./DeleteServiceButton";
 import { getSession } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
-
-const currencyArs = new Intl.NumberFormat("es-AR");
+import { ServicePrice } from "@/app/marketplace/ServicePrice";
 
 export default async function AdminServicesPage() {
   const session = await getSession();
-  if (session?.role !== "OWNER") redirect(session ? "/admin/orders" : "/login");
+  if (session?.role !== "OWNER" && session?.role !== "ADMIN") redirect(session ? "/admin/orders" : "/login");
   const services = await getAllServices();
 
   return (
@@ -40,10 +39,10 @@ export default async function AdminServicesPage() {
                         {service.title}
                         {!service.active && <Badge variant="outline">Inactivo</Badge>}
                       </CardTitle>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        ${currencyArs.format(service.priceArs)} ARS · ${service.priceUsd} USD ·{" "}
-                        {service.deliveryDays} días hábiles
-                      </p>
+                      <div className="mt-2 flex flex-wrap items-center gap-4">
+                        <ServicePrice service={service} />
+                        <span className="text-sm text-muted-foreground">Duración: {service.deliveryDays} días hábiles</span>
+                      </div>
                     </div>
                     <div className="flex shrink-0 gap-2">
                       <ServiceForm service={service} />

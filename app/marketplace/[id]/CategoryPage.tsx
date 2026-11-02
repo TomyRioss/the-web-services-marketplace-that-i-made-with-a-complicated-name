@@ -2,8 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, ImageOff, ShoppingCart } from "lucide-react";
 import { getServicesByCategory } from "@/app/actions/marketplace";
 import { Button } from "@/components/ui/button";
-
-const currencyArs = new Intl.NumberFormat("es-AR");
+import { ServicePrice } from "@/app/marketplace/ServicePrice";
 
 export async function CategoryPage({ slug, basePath }: { slug: string; basePath: string }) {
   const result = await getServicesByCategory(slug);
@@ -46,8 +45,7 @@ export async function CategoryPage({ slug, basePath }: { slug: string; basePath:
                   <h2 className="font-sans text-2xl font-semibold tracking-tight">{service.title}</h2>
                   <p className="mt-3 line-clamp-3 flex-1 text-sm leading-relaxed text-muted-foreground">{service.description}</p>
                   <div className="mt-6 flex items-center justify-between gap-3 border-t border-foreground/10 pt-4">
-                    <span className="text-lg font-semibold">${currencyArs.format(service.priceArs)} ARS</span>
-                    <span className="text-sm text-muted-foreground">${currencyArs.format(service.priceUsd)} USD</span>
+                    <ServicePrice service={service} />
                   </div>
                   <div className="mt-5 grid grid-cols-2 gap-3">
                     <div className="flex min-w-0 items-center justify-center px-1 py-2.5 text-center text-xs font-medium sm:text-sm">

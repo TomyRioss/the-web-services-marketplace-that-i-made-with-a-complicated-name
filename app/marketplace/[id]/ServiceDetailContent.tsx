@@ -1,14 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Clock, ExternalLink, LogIn } from "lucide-react";
+import { Clock, ExternalLink, LogIn, Percent } from "lucide-react";
 import { getServiceById, type ServiceReference } from "@/app/actions/marketplace";
 import { SERVICE_CATEGORIES } from "@/lib/service-categories";
 import { Button } from "@/components/ui/button";
 import { OrderForm } from "./OrderForm";
 import { Gallery } from "./Gallery";
 import { CategoryPage } from "./CategoryPage";
-
-const currencyArs = new Intl.NumberFormat("es-AR");
+import { ServicePrice } from "@/app/marketplace/ServicePrice";
 
 export async function ServiceDetailContent({
   id,
@@ -72,15 +71,18 @@ export async function ServiceDetailContent({
 
           <aside className="lg:sticky lg:top-14 lg:self-start">
             <div className="rounded-xl border bg-card p-5 ring-1 ring-foreground/10">
-              <p className="font-heading text-2xl font-semibold tracking-tight">
-                ${currencyArs.format(service.priceArs)}{" "}
-                <span className="text-base font-normal text-muted-foreground">ARS</span>
-              </p>
-              <p className="text-sm text-muted-foreground">${service.priceUsd} USD</p>
+              <ServicePrice service={service} prominent />
 
               <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
                 <Clock className="size-4" />
                 Entrega en {service.deliveryDays} días hábiles
+              </div>
+
+              <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+                <Percent className="size-4" />
+                {service.advancePaymentPercent === 0
+                  ? "No requiere anticipo"
+                  : `Anticipo para iniciar: ${service.advancePaymentPercent}%`}
               </div>
 
               <div className="mt-5 border-t pt-5">

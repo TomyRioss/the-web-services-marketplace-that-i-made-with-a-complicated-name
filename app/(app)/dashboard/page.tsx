@@ -1,20 +1,23 @@
 import Link from "next/link";
 import Image from "next/image";
 import { redirect } from "next/navigation";
-import { ArrowRight, Clock3, MessageSquare } from "lucide-react";
+import { ArrowRight, Clock3 } from "lucide-react";
 import { getSession } from "@/lib/auth/session";
 import { getOrders } from "@/app/actions/dashboard";
 import { getDashboardAd } from "@/app/actions/dashboard-ads";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { STATUS_META, formatDate } from "./ui-helpers";
+import { OrderAssignmentStatus } from "./OrderAssignmentStatus";
 
 export default async function DashboardPage() {
   const session = await getSession();
   if (!session) redirect("/login");
+  if (session.role === "DEV") redirect("/dashboard/staff");
 
-  const [orders, dashboardAdResult] = await Promise.all([
+  const [orders, completedOrders, dashboardAdResult] = await Promise.all([
     getOrders("progreso"),
+    getOrders("hechos"),
     getDashboardAd(),
   ]);
   const dashboardAd = dashboardAdResult ?? [];
@@ -60,7 +63,7 @@ export default async function DashboardPage() {
             <Clock3 aria-hidden="true" className="mx-auto size-8 text-accent-green" />
             <h2 className="mt-4 text-lg font-semibold">No tenés pedidos activos</h2>
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-              Cuando solicites un servicio, acá vas a poder seguir cada etapa y conversar con el equipo.
+              Cuando solicites un servicio, acá vas a poder seguir cada etapa y ver cuándo se te asigne un desarrollador.
             </p>
             <Button render={<Link href="/dashboard/servicios" />} nativeButton={false} className="mt-5 font-heading text-[10px]">
               Ver servicios
@@ -71,7 +74,7 @@ export default async function DashboardPage() {
             <ul className="divide-y divide-foreground/10">
               {orders.map((order) => {
                 return (
-                  <li key={order.id} className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 py-5">
+                  <li key={order.id} className="flex flex-col justify-between gap-4 py-5 sm:flex-row sm:items-center sm:gap-6">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-3">
                         <h2 className="truncate font-medium">{order.serviceTitle}</h2>
@@ -88,19 +91,41 @@ export default async function DashboardPage() {
                         </p>
                       )}
                     </div>
-                    <Link
-                      href={`/dashboard/chats/${order.id}`}
-                      className="inline-flex shrink-0 items-center gap-2 rounded-md bg-accent-green px-3 py-2 text-sm font-medium text-black transition-opacity hover:opacity-85"
-                    >
-                      <MessageSquare aria-hidden="true" className="size-4" />
-                      Chat
-                    </Link>
+                    <OrderAssignmentStatus
+                      assignedDevId={order.assignedDevId}
+                      chatHref={`/dashboard/chats/${order.id}`}
+                    />
                   </li>
                 );
               })}
             </ul>
           </section>
         )}
+
+        <section aria-label="Pedidos terminados" className="mt-10 border-t border-foreground/10 pt-6">
+          <header className="flex flex-wrap items-center justify-between gap-4 border-b border-foreground/10 pb-5">
+            <h2 className="font-heading text-lg tracking-tight sm:text-xl">Pedidos terminados</h2>
+            <Button render={<Link href="/dashboard/orders?tab=hechos" />} nativeButton={false} variant="outline" size="sm">Ver todos</Button>
+          </header>
+          {completedOrders.length === 0 ? (
+            <p className="py-6 text-sm text-muted-foreground">Todavía no tenés pedidos terminados.</p>
+          ) : (
+            <ul className="divide-y divide-foreground/10">
+              {completedOrders.map((order) => (
+                <li key={order.id} className="flex flex-col justify-between gap-4 py-5 sm:flex-row sm:items-center sm:gap-6">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <h3 className="truncate font-medium">{order.serviceTitle}</h3>
+                      <Badge className={STATUS_META[order.status].className}>{STATUS_META[order.status].label}</Badge>
+                    </div>
+                    <p className="mt-1 text-sm text-muted-foreground">Iniciado el {formatDate(order.createdAt)} · Terminado {formatDate(order.updatedAt)}</p>
+                  </div>
+                  <OrderAssignmentStatus assignedDevId={order.assignedDevId} chatHref={`/dashboard/chats/${order.id}`} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       </div>
     </main>
   );

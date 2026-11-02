@@ -13,12 +13,14 @@ import { OrderStatusSelect } from "./OrderStatusSelect";
 import { OrderAssigneeSelect } from "./OrderAssigneeSelect";
 import { getSession } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
+import { COMMUNICATION_PREFERENCE_LABELS } from "@/lib/order-preferences";
 
 function splitMessageReferences(message: string) {
+  const cleanMessage = message.replace(/\n\nPreferencia de comunicación: (?:Quiero que me hablen|Trabajo autónomo)(?=\n|$)/, "");
   const marker = "\n\nEnlaces de referencia:\n";
-  const index = message.indexOf(marker);
-  if (index < 0) return { description: message, links: [] as string[] };
-  const links = message.slice(index + marker.length).split("\n").filter((link) => {
+  const index = cleanMessage.indexOf(marker);
+  if (index < 0) return { description: cleanMessage, links: [] as string[] };
+  const links = cleanMessage.slice(index + marker.length).split("\n").filter((link) => {
     try {
       const url = new URL(link);
       return url.protocol === "http:" || url.protocol === "https:";
@@ -27,7 +29,7 @@ function splitMessageReferences(message: string) {
     }
   });
   return {
-    description: message.slice(0, index),
+    description: cleanMessage.slice(0, index),
     links,
   };
 }
@@ -43,6 +45,12 @@ export default async function AdminOrdersPage() {
         <h1 className="text-balance text-2xl font-semibold tracking-tight sm:text-3xl">
           Pedidos
         </h1>
+
+        {developers.length === 0 && (
+          <p className="mt-4 text-sm text-muted-foreground">
+            Todavía no hay usuarios disponibles para asignar pedidos.
+          </p>
+        )}
 
         <Card className="mt-6">
           <CardContent>
@@ -86,6 +94,11 @@ export default async function AdminOrdersPage() {
                       </TableCell>
                       <TableCell className="max-w-sm whitespace-normal">
                         <p className="line-clamp-3">{description}</p>
+                        {order.communicationPreference && (
+                          <p className="mt-1 text-xs text-accent-green">
+                            Preferencia: {COMMUNICATION_PREFERENCE_LABELS[order.communicationPreference]}
+                          </p>
+                        )}
                         {links.length > 0 && (
                           <div className="mt-2 flex flex-col gap-1">
                             {links.map((link, index) => (
@@ -113,6 +126,7 @@ export default async function AdminOrdersPage() {
                         <OrderAssigneeSelect
                           orderId={order.id}
                           assignedDevId={order.assignedDevId}
+                          initialAssignmentNote={order.assignmentNote}
                           developers={developers}
                         />
                       </TableCell>

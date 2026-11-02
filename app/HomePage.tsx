@@ -88,7 +88,7 @@ export default async function MarketplacePage() {
           />
         </div>
         <div className={`relative z-20 mx-auto w-full max-w-7xl lg:max-w-none ${session ? "-translate-y-8 lg:-translate-y-24" : "-translate-y-[212px] sm:-translate-y-[212px] md:-translate-y-8 lg:-translate-y-24"}`}>
-          <h1 className="mx-auto max-w-none text-center text-balance text-[clamp(1.75rem,9vw,7rem)] font-semibold uppercase leading-[1.04] tracking-[-0.04em] lg:text-[clamp(2rem,3.5vw,4.25rem)]">
+          <h1 className="mx-auto max-w-none text-center text-balance font-hero text-[clamp(1.75rem,9vw,7rem)] font-normal uppercase leading-[1.04] tracking-[-0.04em] lg:text-[clamp(2rem,3.5vw,4.25rem)]">
             <span className="block sm:inline lg:hidden">Tu equipo de</span>{" "}
             <span className="block sm:inline lg:hidden">desarrollo</span>{" "}
             <span className="block text-accent-green underline decoration-accent-green decoration-2 underline-offset-[0.12em] sm:inline lg:hidden">de bolsillo.</span>

@@ -26,6 +26,9 @@ export function ServiceForm({ service }: { service?: Service }) {
   const [description, setDescription] = useState(service?.description ?? "");
   const [priceArs, setPriceArs] = useState(String(service?.priceArs ?? ""));
   const [priceUsd, setPriceUsd] = useState(String(service?.priceUsd ?? ""));
+  const [advancePaymentPercent, setAdvancePaymentPercent] = useState(String(service?.advancePaymentPercent ?? 100));
+  const [promotionActive, setPromotionActive] = useState(service?.promotionActive ?? false);
+  const [promotionPriceArs, setPromotionPriceArs] = useState(String(service?.promotionPriceArs ?? ""));
   const [deliveryDays, setDeliveryDays] = useState(String(service?.deliveryDays ?? ""));
   const [category, setCategory] = useState(service?.category || inferServiceCategory(service?.title, service?.description));
   const [portfolioUrls, setPortfolioUrls] = useState<string[]>(
@@ -117,11 +120,28 @@ export function ServiceForm({ service }: { service?: Service }) {
 
   function handleSubmit() {
     setError(null);
+    const parsedAdvancePaymentPercent = Number(advancePaymentPercent);
+    if (!Number.isInteger(parsedAdvancePaymentPercent) || parsedAdvancePaymentPercent < 0 || parsedAdvancePaymentPercent > 100) {
+      setError("El porcentaje de anticipo debe estar entre 0 y 100.");
+      return;
+    }
+    const parsedPromotionPrice = promotionPriceArs.trim() ? Number(promotionPriceArs) : null;
+    if (promotionActive && (!parsedPromotionPrice || parsedPromotionPrice <= 0)) {
+      setError("Ingresá el precio promocional.");
+      return;
+    }
+    if (promotionActive && parsedPromotionPrice !== null && parsedPromotionPrice >= Number(priceArs)) {
+      setError("El precio promocional debe ser menor que el precio original.");
+      return;
+    }
     const data = {
       title,
       description,
       priceArs: Number(priceArs),
       priceUsd: Number(priceUsd),
+      advancePaymentPercent: parsedAdvancePaymentPercent,
+      promotionActive,
+      promotionPriceArs: promotionActive && parsedPromotionPrice ? parsedPromotionPrice : 0,
       deliveryDays: Number(deliveryDays),
       category,
       portfolioUrls,
@@ -147,12 +167,12 @@ export function ServiceForm({ service }: { service?: Service }) {
       <DialogTrigger render={<Button variant={isEdit ? "outline" : "default"} size={isEdit ? "sm" : "default"} />}>
         {isEdit ? "Editar" : "Nuevo servicio"}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Editar servicio" : "Nuevo servicio"}</DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-col gap-3">
+        <div className="flex min-h-0 flex-col gap-3 overflow-y-auto overscroll-contain pr-1">
           <div className="flex flex-col gap-1.5">
             <Label>Título</Label>
             <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Landing Page" />
@@ -203,6 +223,47 @@ export function ServiceForm({ service }: { service?: Service }) {
                 placeholder="5"
               />
             </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="service-advance-payment">Anticipo para iniciar (%)</Label>
+            <Input
+              id="service-advance-payment"
+              type="number"
+              min="0"
+              max="100"
+              step="1"
+              value={advancePaymentPercent}
+              onChange={(e) => setAdvancePaymentPercent(e.target.value)}
+              aria-describedby="service-advance-payment-help"
+            />
+            <p id="service-advance-payment-help" className="text-xs text-muted-foreground">Porcentaje del precio que se solicita antes de comenzar. 100% solicita el pago completo.</p>
+          </div>
+
+          <div className="rounded-lg border border-foreground/10 p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <Label htmlFor="service-promotion">Promoción</Label>
+                <p className="mt-1 text-xs text-muted-foreground">Mostrá un precio especial en el marketplace.</p>
+              </div>
+              <Switch id="service-promotion" checked={promotionActive} onCheckedChange={setPromotionActive} />
+            </div>
+            {promotionActive && (
+              <div className="mt-3 flex flex-col gap-1.5">
+                <Label htmlFor="service-promotion-price">Precio promocional ARS</Label>
+                <Input
+                  id="service-promotion-price"
+                  type="number"
+                  min="1"
+                  max={priceArs || undefined}
+                  value={promotionPriceArs}
+                  onChange={(e) => setPromotionPriceArs(e.target.value)}
+                  placeholder="120000"
+                />
+                <p className="text-xs text-muted-foreground">Debe ser menor que el precio original.</p>
+                <p className="text-xs text-muted-foreground">Se aplica el mismo porcentaje de descuento al precio USD, redondeado a centavos.</p>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col gap-1.5">

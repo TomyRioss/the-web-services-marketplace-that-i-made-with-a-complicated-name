@@ -5,6 +5,7 @@ import { ensurePocketBaseAdmin, pbFilterValue } from "@/lib/pocketbase";
 import type { Role } from "@/lib/data-types";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { createSession, clearSession } from "@/lib/auth/session";
+import { isValidPhoneNumber } from "@/lib/auth/phone";
 
 export type AuthState = {
   error: string | null;
@@ -21,7 +22,7 @@ export async function signUp(_prevState: AuthState, formData: FormData): Promise
   const token = crypto.randomUUID();
 
   if (!fullName) return { error: "Ingresá tu nombre completo.", values, token };
-  if (!phone) return { error: "Ingresá tu teléfono.", values, token };
+  if (!isValidPhoneNumber(phone)) return { error: "Ingresá un número de teléfono válido.", values, token };
   if (!email) return { error: "Ingresá tu email.", values, token };
   if (!password || password.length < 6) {
     return { error: "La contraseña debe tener al menos 6 caracteres.", values, token };

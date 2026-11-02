@@ -12,15 +12,28 @@ type ChatRecord = {
   author?: string;
   authorRole?: string;
   message?: string;
+  attachments?: string[];
   createdAt?: string;
   expand?: {
     author?: { fullName?: string; email?: string; role?: string };
   };
 };
 
-async function requireTeam() {
+async function requireCurrentSession() {
   const session = await getSession();
   if (!session) throw new Error("No autenticado");
+  const pb = await ensurePocketBaseAdmin();
+  const profile = await pb.collection("ttmcobuild_profiles").getOne(session.userId, {
+    fields: "id,role",
+    cache: "no-store",
+  });
+  const role = profile.role as Role;
+  if (!["OWNER", "ADMIN", "DEV", "CLIENTE"].includes(role)) throw new Error("No autorizado");
+  return { ...session, role };
+}
+
+async function requireTeam() {
+  const session = await requireCurrentSession();
   if (!["OWNER", "ADMIN", "DEV"].includes(session.role)) throw new Error("No autorizado");
   return session;
 }
@@ -31,6 +44,7 @@ function requireManager(role: Role) {
 
 export async function getTeamChatOrders() {
   const session = await requireTeam();
+  requireManager(session.role);
   const pb = await ensurePocketBaseAdmin();
   const filter = session.role === "DEV" ? `assignedDev = ${pbFilterValue(session.userId)}` : undefined;
   const orders = await pb.collection("ttmcobuild_orders").getFullList({
@@ -69,7 +83,7 @@ export async function getTeamChatOrders() {
           }
         : null,
     };
-  });
+  }).sort((a, b) => (b.lastMessage?.createdAt ?? b.createdAt).getTime() - (a.lastMessage?.createdAt ?? a.createdAt).getTime());
 }
 
 export async function getTeamChatContacts() {
@@ -107,15 +121,15 @@ async function getDirectMessages(session: { userId: string; role: Role }, otherU
 }
 
 export async function getDirectChatThread(otherUserId: string) {
-  const session = await getSession();
-  if (!session) throw new Error("No autenticado");
-  if (!["OWNER", "ADMIN", "DEV", "CLIENTE"].includes(session.role)) throw new Error("No autorizado");
+  const session = await requireCurrentSession();
+  if (!["OWNER", "ADMIN", "CLIENTE"].includes(session.role)) throw new Error("No autorizado");
   if (!/^[a-zA-Z0-9]{15}$/.test(otherUserId) || otherUserId === session.userId) throw new Error("Usuario inválido.");
 
   const { pb, messages } = await getDirectMessages(session, otherUserId);
   const otherUser = await pb.collection("ttmcobuild_profiles").getOne(otherUserId);
   if (session.role === "CLIENTE" && !["OWNER", "ADMIN"].includes(otherUser.role)) throw new Error("No autorizado");
   return {
+    sessionRole: session.role,
     contact: { id: otherUser.id, name: otherUser.fullName || otherUser.email, email: otherUser.email, role: otherUser.role },
     messages: messages.map((message) => ({
       id: message.id,
@@ -123,6 +137,11 @@ export async function getDirectChatThread(otherUserId: string) {
       authorName: message.expand?.author?.fullName || message.expand?.author?.email || "Equipo",
       authorRole: String(message.authorRole ?? ""),
       message: message.message ?? "",
+      attachments: (message.attachments ?? []).map((name) => ({
+        name,
+        kind: /\.(jpe?g|png|webp|gif|avif)$/i.test(name) ? "image" as const : "audio" as const,
+        url: `/api/chat/media/${message.id}/${encodeURIComponent(name)}`,
+      })),
       createdAt: toDate(message.createdAt ?? ""),
       mine: message.author === session.userId,
     })),
@@ -130,9 +149,8 @@ export async function getDirectChatThread(otherUserId: string) {
 }
 
 export async function sendDirectChatMessage(otherUserId: string, message: string) {
-  const session = await getSession();
-  if (!session) throw new Error("No autenticado");
-  if (!["OWNER", "ADMIN", "DEV", "CLIENTE"].includes(session.role)) throw new Error("No autorizado");
+  const session = await requireCurrentSession();
+  if (!["OWNER", "ADMIN", "CLIENTE"].includes(session.role)) throw new Error("No autorizado");
   if (!/^[a-zA-Z0-9]{15}$/.test(otherUserId) || otherUserId === session.userId) throw new Error("Usuario inválido.");
   const text = message.trim();
   if (!text) throw new Error("El mensaje está vacío.");
@@ -164,8 +182,8 @@ export async function sendDirectChatMessage(otherUserId: string, message: string
 }
 
 export async function getDirectChatList() {
-  const session = await getSession();
-  if (!session) throw new Error("No autenticado");
+  const session = await requireCurrentSession();
+  if (session.role === "DEV") return [];
   const pb = await ensurePocketBaseAdmin();
   const records = (await pb.collection("ttmcobuild_chat_messages").getFullList({
     filter: `(author = ${pbFilterValue(session.userId)} || recipient = ${pbFilterValue(session.userId)})`,

@@ -1,17 +1,22 @@
 import Link from "next/link";
-import { MessageSquare } from "lucide-react";
 import { getOrders, type OrdersTab } from "@/app/actions/dashboard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { STATUS_META, formatDate } from "../ui-helpers";
 import { TABS, isOrdersTab } from "./tabs";
+import { OrderAssignmentStatus } from "../OrderAssignmentStatus";
+import { COMMUNICATION_PREFERENCE_LABELS } from "@/lib/order-preferences";
+import { getSession } from "@/lib/auth/session";
+import { redirect } from "next/navigation";
 
 export default async function OrdersPage({
   searchParams,
 }: {
   searchParams: Promise<{ tab?: string }>;
 }) {
+  const session = await getSession();
+  if (session?.role === "DEV") redirect("/dashboard/staff");
   const sp = await searchParams;
   const tab: OrdersTab = isOrdersTab(sp.tab) ? sp.tab : "progreso";
   const orders = await getOrders(tab);
@@ -54,28 +59,28 @@ export default async function OrdersPage({
             {orders.map((order) => (
               <li key={order.id}>
                 <Card>
-                  <CardContent className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">{order.serviceTitle}</p>
-                      <p className="mt-0.5 text-sm text-muted-foreground">
-                        {formatDate(order.createdAt)} · {order.message.slice(0, 90)}
-                        {order.message.length > 90 ? "…" : ""}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3">
+                  <CardContent className="flex flex-col gap-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">{order.serviceTitle}</p>
+                        <p className="mt-0.5 text-sm text-muted-foreground">
+                          {formatDate(order.createdAt)} · {order.message.slice(0, 90)}
+                          {order.message.length > 90 ? "…" : ""}
+                        </p>
+                        {order.communicationPreference && (
+                          <p className="mt-1 text-xs text-accent-green">
+                            Preferencia: {COMMUNICATION_PREFERENCE_LABELS[order.communicationPreference]}
+                          </p>
+                        )}
+                      </div>
                       <Badge className={STATUS_META[order.status].className}>
                         {STATUS_META[order.status].label}
                       </Badge>
-                      <Button
-                        render={<Link href={`/dashboard/chats/${order.id}`} />}
-                        nativeButton={false}
-                        variant="outline"
-                        size="sm"
-                      >
-                        <MessageSquare className="size-4" />
-                        Abrir chat
-                      </Button>
                     </div>
+                    <OrderAssignmentStatus
+                      assignedDevId={order.assignedDevId}
+                      chatHref={`/dashboard/chats/${order.id}`}
+                    />
                   </CardContent>
                 </Card>
               </li>

@@ -5,8 +5,12 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { STATUS_META, formatDateTime } from "../ui-helpers";
+import { getSession } from "@/lib/auth/session";
+import { redirect } from "next/navigation";
 
 export default async function ChatsPage() {
+  const session = await getSession();
+  if (session?.role === "DEV") redirect("/dashboard/staff");
   const chats = await getChatList();
 
   return (
@@ -14,12 +18,14 @@ export default async function ChatsPage() {
       <div className="w-full max-w-none">
         <h1 className="text-balance text-2xl font-semibold tracking-tight sm:text-3xl">Chats</h1>
         <p className="mt-2 text-muted-foreground">
-          Un chat interno por cada servicio que pediste, con el equipo.
+          Acá aparecen tus chats directos y los pedidos que ya tienen un desarrollador asignado.
         </p>
 
         {chats.length === 0 ? (
           <div className="mt-8 rounded-xl border border-dashed px-6 py-12 text-center">
-            <p className="text-sm text-muted-foreground">Todavía no tenés pedidos. Cuando pidas un servicio se abre su chat.</p>
+            <p className="text-sm text-muted-foreground">
+              Todavía no tenés chats. Cada pedido tiene una conversación directa con el equipo.
+            </p>
             <Button render={<Link href="/dashboard/servicios" />} nativeButton={false} size="sm" className="mt-4">
               Ver servicios
             </Button>

@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/ui/password-input";
 import { BrandLogo } from "@/components/BrandLogo";
 import CursorGrid from "@/components/ui/CursorGrid";
+import { isValidPhoneNumber } from "@/lib/auth/phone";
 
 const initialState: AuthState = { error: null };
 const inputClassName =
@@ -19,15 +20,37 @@ export function RegisterForm({ googleError }: { googleError?: string }) {
   const [state, formAction, pending] = useActionState(signUp, initialState);
   const [step, setStep] = useState<"email" | "details">("email");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [phoneError, setPhoneError] = useState<string | null>(null);
   const authError = googleError === "google_unconfigured"
     ? "El acceso con Google todavía no está configurado."
+    : googleError === "phone_required"
+      ? "Ingresá un teléfono válido para continuar."
+      : googleError === "google_account_not_found"
+        ? "No encontramos esa cuenta. Completá tus datos para registrarte."
+      : googleError === "google_phone_invalid"
+        ? "El teléfono no coincide con el asociado a esta cuenta."
     : googleError === "google_failed"
       ? "No pudimos completar el acceso con Google. Inténtalo otra vez."
       : null;
 
   function continueWithEmail(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!isValidPhoneNumber(phone)) {
+      setPhoneError("Ingresá un teléfono válido, con código de área.");
+      return;
+    }
+    setPhoneError(null);
     setStep("details");
+  }
+
+  function continueWithGoogle(event: FormEvent<HTMLFormElement>) {
+    if (!isValidPhoneNumber(phone)) {
+      event.preventDefault();
+      setPhoneError("Ingresá un teléfono válido para continuar.");
+      return;
+    }
+    setPhoneError(null);
   }
 
   return (
@@ -87,13 +110,14 @@ export function RegisterForm({ googleError }: { googleError?: string }) {
           <div className="mx-auto flex w-full max-w-[376px] flex-col">
             {step === "email" ? (
               <>
-                <Link
-                  href="/api/auth/google?source=register"
-                  className="flex h-10 items-center justify-center gap-3 rounded-md border border-white/25 px-3 text-sm font-medium text-white transition-colors hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9E94F]"
-                >
-                  <FcGoogle aria-hidden="true" className="size-[18px]" />
-                  Continuar con Google
-                </Link>
+                <form action="/api/auth/google" method="post" onSubmit={continueWithGoogle}>
+                  <input type="hidden" name="source" value="register" />
+                  <input type="hidden" name="phone" value={phone} />
+                  <button type="submit" className="flex h-10 w-full items-center justify-center gap-3 rounded-md border border-white/25 px-3 text-sm font-medium text-white transition-colors hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9E94F]">
+                    <FcGoogle aria-hidden="true" className="size-[18px]" />
+                    Continuar con Google
+                  </button>
+                </form>
 
                 <div className="my-8 flex items-center gap-3 text-xs text-white/65" aria-hidden="true">
                   <span className="h-px flex-1 bg-white/20" />
@@ -117,6 +141,25 @@ export function RegisterForm({ googleError }: { googleError?: string }) {
                       placeholder="Tu dirección de correo electrónico"
                     />
                   </div>
+                  <div>
+                    <Label className="sr-only" htmlFor="phone">Teléfono</Label>
+                    <Input
+                      className={inputClassName}
+                      id="phone"
+                      name="phone"
+                      type="tel"
+                      inputMode="tel"
+                      required
+                      autoComplete="tel"
+                      value={phone}
+                      onChange={(event) => {
+                        setPhone(event.target.value);
+                        setPhoneError(null);
+                      }}
+                      placeholder="Tu teléfono, con código de área"
+                    />
+                  </div>
+                  {phoneError && <p className="text-sm text-red-200" role="alert">{phoneError}</p>}
                   {authError && (
                     <p className="text-sm text-red-200" role="alert">{authError}</p>
                   )}
@@ -142,14 +185,12 @@ export function RegisterForm({ googleError }: { googleError?: string }) {
                 </p>
                 <form action={formAction} className="flex flex-col gap-3">
                   <input type="hidden" name="email" value={email} />
+                  <input type="hidden" name="phone" value={phone} />
                   <div>
                     <Label className="sr-only" htmlFor="fullName">Nombre completo</Label>
                     <Input className={inputClassName} id="fullName" name="fullName" required autoComplete="name" autoFocus placeholder="Tu nombre completo" />
                   </div>
-                  <div>
-                    <Label className="sr-only" htmlFor="phone">Teléfono</Label>
-                    <Input className={inputClassName} id="phone" name="phone" type="tel" required autoComplete="tel" placeholder="Tu teléfono" />
-                  </div>
+
                   <div>
                     <Label className="sr-only" htmlFor="password">Contraseña</Label>
                     <PasswordInput className={inputClassName} id="password" name="password" required minLength={6} autoComplete="new-password" placeholder="Contraseña, mínimo 6 caracteres" />

@@ -12,6 +12,7 @@ type ChatRecord = {
   author?: string;
   authorRole?: string;
   message?: string;
+  attachments?: string[];
   createdAt?: string;
 };
 
@@ -211,6 +212,11 @@ export async function GET(request: Request) {
               authorName,
               authorRole: record.authorRole ?? "",
               message: record.message ?? "",
+              attachments: (record.attachments ?? []).map((name) => ({
+                name,
+                kind: /\.(jpe?g|png|webp|gif|avif)$/i.test(name) ? "image" : "audio",
+                url: `/api/chat/media/${record.id}/${encodeURIComponent(name)}`,
+              })),
               createdAt: record.createdAt ?? new Date().toISOString(),
               mine: authorId === session.userId,
             })}\n\n`);

@@ -1,18 +1,26 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { ensurePocketBaseAdmin, toDate } from "@/lib/pocketbase";
-import type { OrderStatus, Service } from "@/lib/data-types";
+import { ensurePocketBaseAdmin, pbFilterValue, toDate } from "@/lib/pocketbase";
+import type { CommunicationPreference, OrderStatus, Service } from "@/lib/data-types";
 import { getSession } from "@/lib/auth/session";
 import { inferServiceCategory, SERVICE_CATEGORIES } from "@/lib/service-categories";
 import { normalizeWebUrl } from "@/lib/normalize-web-url";
+import { createClientNotification } from "@/lib/notification-delivery";
+import { getCommunicationPreference } from "@/lib/order-preferences";
+import { SERVICE_PRICING_DYNAMIC_PATHS, SERVICE_PRICING_STATIC_PATHS } from "@/lib/service-pricing-paths";
 
-function requireOwner(role: string) {
-  if (role !== "OWNER") throw new Error("No autorizado");
+function requireServiceManager(role: string) {
+  if (role !== "OWNER" && role !== "ADMIN") throw new Error("No autorizado");
 }
 
 function requireOrderManager(role: string) {
   if (role !== "OWNER" && role !== "ADMIN") throw new Error("No autorizado");
+}
+
+function revalidateServiceViews() {
+  for (const path of SERVICE_PRICING_STATIC_PATHS) revalidatePath(path);
+  for (const path of SERVICE_PRICING_DYNAMIC_PATHS) revalidatePath(path, "page");
 }
 
 export type ServiceReference = { url: string; imageUrl?: string };
@@ -23,6 +31,9 @@ type PocketBaseServiceRecord = {
   description: string;
   priceArs: number;
   priceUsd: number;
+  advancePaymentPercent?: number;
+  promotionActive?: boolean;
+  promotionPriceArs?: number | null;
   deliveryDays: number;
   category?: string;
   portfolioUrls?: string[];
@@ -39,6 +50,11 @@ function mapService(record: PocketBaseServiceRecord): Service {
     description: record.description,
     priceArs: record.priceArs,
     priceUsd: record.priceUsd,
+    advancePaymentPercent: Number.isInteger(record.advancePaymentPercent) && Number(record.advancePaymentPercent) >= 0 && Number(record.advancePaymentPercent) <= 100
+      ? Number(record.advancePaymentPercent)
+      : 100,
+    promotionActive: Boolean(record.promotionActive && Number(record.promotionPriceArs) > 0 && Number(record.promotionPriceArs) < record.priceArs),
+    promotionPriceArs: record.promotionPriceArs || null,
     deliveryDays: record.deliveryDays,
     category: record.category || inferServiceCategory(record.title, record.description),
     portfolioUrls: record.portfolioUrls ?? [],
@@ -90,7 +106,7 @@ export async function getServicesByCategory(slug: string) {
 export async function getAllServices() {
   const session = await getSession();
   if (!session) throw new Error("No autenticado");
-  requireOwner(session.role);
+  requireServiceManager(session.role);
 
   const pb = await ensurePocketBaseAdmin();
   const records = await pb.collection("ttmcobuild_services").getFullList({ sort: "-createdAt" });
@@ -102,6 +118,9 @@ export async function createService(data: {
   description: string;
   priceArs: number;
   priceUsd: number;
+  advancePaymentPercent: number;
+  promotionActive: boolean;
+  promotionPriceArs: number;
   deliveryDays: number;
   category: string;
   portfolioUrls: string[];
@@ -109,13 +128,15 @@ export async function createService(data: {
 }) {
   const session = await getSession();
   if (!session) throw new Error("No autenticado");
-  requireOwner(session.role);
+  requireServiceManager(session.role);
+
+  validateAdvancePaymentPercent(data.advancePaymentPercent);
+  validatePromotion(data.priceArs, data.promotionActive, data.promotionPriceArs);
 
   const pb = await ensurePocketBaseAdmin();
   const now = new Date().toISOString();
   const record = await pb.collection("ttmcobuild_services").create({ ...data, active: true, createdAt: now, updatedAt: now });
-  revalidatePath("/marketplace");
-  revalidatePath("/admin/services");
+  revalidateServiceViews();
   return mapService(record as unknown as PocketBaseServiceRecord);
 }
 
@@ -126,6 +147,9 @@ export async function updateService(
     description: string;
     priceArs: number;
     priceUsd: number;
+    advancePaymentPercent: number;
+    promotionActive: boolean;
+    promotionPriceArs: number;
     deliveryDays: number;
     category: string;
     portfolioUrls: string[];
@@ -135,31 +159,56 @@ export async function updateService(
 ) {
   const session = await getSession();
   if (!session) throw new Error("No autenticado");
-  requireOwner(session.role);
+  requireServiceManager(session.role);
+
+  validateAdvancePaymentPercent(data.advancePaymentPercent);
+  validatePromotion(data.priceArs, data.promotionActive, data.promotionPriceArs);
 
   const pb = await ensurePocketBaseAdmin();
   const record = await pb.collection("ttmcobuild_services").update(id, { ...data, updatedAt: new Date().toISOString() });
-  revalidatePath("/marketplace");
-  revalidatePath("/admin/services");
+  revalidateServiceViews();
   return mapService(record as unknown as PocketBaseServiceRecord);
+}
+
+function validatePromotion(priceArs: number, promotionActive: boolean, promotionPriceArs: number) {
+  if (!promotionActive) return;
+  if (!Number.isFinite(promotionPriceArs) || promotionPriceArs <= 0) {
+    throw new Error("Ingresá un precio promocional válido.");
+  }
+  if (promotionPriceArs >= priceArs) {
+    throw new Error("El precio promocional debe ser menor que el precio original.");
+  }
+}
+
+function validateAdvancePaymentPercent(value: number) {
+  if (!Number.isInteger(value) || value < 0 || value > 100) {
+    throw new Error("El porcentaje de anticipo debe ser un número entero entre 0 y 100.");
+  }
 }
 
 export async function deleteService(id: string) {
   const session = await getSession();
   if (!session) throw new Error("No autenticado");
-  requireOwner(session.role);
+  requireServiceManager(session.role);
 
   const pb = await ensurePocketBaseAdmin();
   await pb.collection("ttmcobuild_services").delete(id);
-  revalidatePath("/marketplace");
-  revalidatePath("/admin/services");
+  revalidateServiceViews();
 }
 
-export async function createOrder(serviceId: string, message: string, referenceLinks: string[] = []) {
+export async function createOrder(
+  serviceId: string,
+  message: string,
+  referenceLinks: string[] = [],
+  communicationPreference: CommunicationPreference = "TALK_TO_ME"
+) {
   const session = await getSession();
   if (!session) throw new Error("No autenticado");
   const cleanMessage = message.trim();
   if (!cleanMessage || cleanMessage.length > 20000) throw new Error("Revisá el detalle de tu pedido.");
+  if (communicationPreference !== "TALK_TO_ME" && communicationPreference !== "AUTONOMOUS") {
+    throw new Error("Elegí una preferencia de comunicación válida.");
+  }
   if (!Array.isArray(referenceLinks) || referenceLinks.length > 5) throw new Error("Podés agregar hasta 5 enlaces de referencia.");
   const cleanLinks = referenceLinks.map((link) => {
     if (typeof link !== "string" || link.length > 2048) throw new Error("Hay un enlace de referencia no válido.");
@@ -169,9 +218,12 @@ export async function createOrder(serviceId: string, message: string, referenceL
       throw new Error("Ingresá un dominio válido, como sitio.com, o una URL con http:// o https://.");
     }
   });
-  const orderMessage = cleanLinks.length
-    ? `${cleanMessage}\n\nEnlaces de referencia:\n${cleanLinks.join("\n")}`
-    : cleanMessage;
+  const preferenceLabel = communicationPreference === "TALK_TO_ME" ? "Quiero que me hablen" : "Trabajo autónomo";
+  const orderMessage = [
+    cleanMessage,
+    `Preferencia de comunicación: ${preferenceLabel}`,
+    cleanLinks.length ? `Enlaces de referencia:\n${cleanLinks.join("\n")}` : "",
+  ].filter(Boolean).join("\n\n");
 
   const pb = await ensurePocketBaseAdmin();
   const service = await pb.collection("ttmcobuild_services").getOne(serviceId);
@@ -187,6 +239,7 @@ export async function createOrder(serviceId: string, message: string, referenceL
   });
   revalidatePath("/admin/orders");
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard", "layout");
   revalidatePath("/dashboard/orders");
   revalidatePath("/dashboard/chats");
   return record;
@@ -214,6 +267,7 @@ export async function getAllOrders() {
     serviceId: record.service,
     clientId: record.client,
     message: record.message,
+    communicationPreference: getCommunicationPreference(record.message),
     status: record.status as OrderStatus,
     createdAt: toDate(record.createdAt),
     updatedAt: toDate(record.updatedAt),
@@ -225,6 +279,7 @@ export async function getAllOrders() {
       phone: record.expand?.client?.phone ?? null,
     },
     assignedDevId: record.assignedDev ?? "",
+    assignmentNote: record.assignmentNote ?? "",
     assignedDev: record.expand?.assignedDev
       ? {
           fullName: record.expand.assignedDev.fullName ?? "",
@@ -241,13 +296,14 @@ export async function getAssignableDevelopers() {
 
   const pb = await ensurePocketBaseAdmin();
   const records = await pb.collection("ttmcobuild_profiles").getFullList({
-    filter: 'role = "DEV"',
+    filter: 'role = "DEV" || role = "ADMIN" || role = "OWNER"',
     sort: "fullName,email",
   });
   return records.map((record) => ({
     id: record.id,
     name: record.fullName || record.email,
     email: record.email,
+    isCurrentUser: record.id === session.userId,
   }));
 }
 
@@ -286,7 +342,7 @@ async function sendOrderAssignmentEmail(to: string, developerName: string, servi
   if (!response.ok) throw new Error("Resend rechazó el envío del correo.");
 }
 
-export async function assignOrderToDeveloper(orderId: string, developerId: string) {
+export async function assignOrderToDeveloper(orderId: string, developerId: string, assignmentNote = "") {
   const session = await getSession();
   if (!session) throw new Error("No autenticado");
   requireOrderManager(session.role);
@@ -294,20 +350,65 @@ export async function assignOrderToDeveloper(orderId: string, developerId: strin
     throw new Error("Pedido o desarrollador inválido.");
   }
 
+  const note = assignmentNote.trim();
+  if (note.length > 4000) throw new Error("La nota no puede superar los 4000 caracteres.");
   const pb = await ensurePocketBaseAdmin();
   const [order, developer] = await Promise.all([
-    pb.collection("ttmcobuild_orders").getOne(orderId, { expand: "service,assignedDev" }),
+    pb.collection("ttmcobuild_orders").getOne(orderId, { expand: "service,assignedDev,client" }),
     pb.collection("ttmcobuild_profiles").getOne(developerId),
   ]);
-  if (developer.role !== "DEV") throw new Error("Solo podés delegar pedidos a desarrolladores.");
+  if (!["DEV", "ADMIN", "OWNER"].includes(developer.role)) throw new Error("El usuario no puede recibir pedidos.");
 
   const previousDeveloperId = String(order.assignedDev ?? "");
-  if (previousDeveloperId === developerId) return { emailSent: true, emailError: null, unchanged: true };
+  const recoverAssignmentNotification = async () => {
+    if (!["DEV", "ADMIN", "OWNER"].includes(developer.role)) return null;
+    const existingNotifications = await pb.collection("ttmcobuild_notifications").getFullList({
+      filter: `order = ${pbFilterValue(orderId)} && recipient = ${pbFilterValue(String(order.client))} && type = "ASSIGNMENT"`,
+      fields: "id",
+      perPage: 1,
+    });
+    if (existingNotifications.length > 0) return null;
+    const result = await createClientNotification({
+      recipientId: String(order.client),
+      orderId,
+      type: "ASSIGNMENT",
+      message: `Ya hay un desarrollador asignado a ${order.expand?.service?.title ?? "tu pedido"}.`,
+      href: `/dashboard/chats/${orderId}`,
+      email: order.expand?.client?.email ?? "",
+    });
+    return result;
+  };
+  if (previousDeveloperId === developerId && String(order.assignmentNote ?? "") === note && String(order.assignedBy ?? "") === session.userId) {
+    const recoveredNotification = await recoverAssignmentNotification();
+    if (recoveredNotification) {
+      revalidatePath("/dashboard");
+      revalidatePath("/dashboard", "layout");
+      revalidatePath("/dashboard/notificaciones");
+      return { emailSent: true, emailError: null, clientNotificationEmailError: recoveredNotification.emailError, unchanged: false };
+    }
+    return { emailSent: true, emailError: null, clientNotificationEmailError: null, unchanged: true };
+  }
 
   await pb.collection("ttmcobuild_orders").update(orderId, {
     assignedDev: developerId,
+    assignedBy: session.userId,
+    assignmentNote: note,
     updatedAt: new Date().toISOString(),
   });
+
+  if (previousDeveloperId === developerId) {
+    const recoveredNotification = await recoverAssignmentNotification();
+    revalidatePath("/admin/orders");
+    revalidatePath("/dashboard", "layout");
+    revalidatePath("/dashboard/staff");
+    revalidatePath("/dashboard/notificaciones");
+    return {
+      emailSent: true,
+      emailError: null,
+      clientNotificationEmailError: recoveredNotification?.emailError ?? null,
+      unchanged: !recoveredNotification,
+    };
+  }
 
   let emailSent = false;
   let emailError: string | null = null;
@@ -323,11 +424,29 @@ export async function assignOrderToDeveloper(orderId: string, developerId: strin
     emailError = error instanceof Error ? error.message : "No se pudo enviar el correo.";
   }
 
+  let clientNotificationEmailError: string | null = null;
+  try {
+    const serviceTitle = order.expand?.service?.title ?? "Pedido";
+    const result = await createClientNotification({
+      recipientId: String(order.client),
+      orderId,
+      type: "ASSIGNMENT",
+      message: `Hay un desarrollador asignado a ${serviceTitle}.`,
+      href: `/dashboard/chats/${orderId}`,
+      email: order.expand?.client?.email ?? "",
+    });
+    clientNotificationEmailError = result.emailError;
+  } catch (error) {
+    clientNotificationEmailError = error instanceof Error ? error.message : "No se pudo crear la notificación del cliente.";
+  }
+
   revalidatePath("/admin/orders");
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard", "layout");
   revalidatePath("/dashboard/orders");
   revalidatePath("/dashboard/chats");
-  return { emailSent, emailError, developerName: developer.fullName || developer.email };
+  revalidatePath("/dashboard/staff");
+  return { emailSent, emailError, clientNotificationEmailError, developerName: developer.fullName || developer.email };
 }
 
 export async function updateOrderStatus(orderId: string, status: OrderStatus) {
@@ -335,10 +454,39 @@ export async function updateOrderStatus(orderId: string, status: OrderStatus) {
   if (!session) throw new Error("No autenticado");
   requireOrderManager(session.role);
 
+  const validStatuses: OrderStatus[] = ["PENDING", "IN_PROGRESS", "CANCELLED"];
+  if (!/^[a-zA-Z0-9]{15}$/.test(orderId) || !validStatuses.includes(status)) throw new Error("Pedido o estado inválido.");
+
   const pb = await ensurePocketBaseAdmin();
+  const previous = await pb.collection("ttmcobuild_orders").getOne(orderId, { expand: "service,client" });
+  if (status === "DONE") throw new Error("El cliente debe aprobar la entrega para cerrar el pedido.");
+  if (previous.status === status) return previous;
+
   const record = await pb.collection("ttmcobuild_orders").update(orderId, { status, updatedAt: new Date().toISOString() });
+  try {
+    const statusLabels: Record<OrderStatus, string> = {
+      PENDING: "Pendiente",
+      IN_PROGRESS: "En progreso",
+      REVIEW: "En revisión",
+      APPROVED: "Aprobado por el cliente",
+      DONE: "Cerrado",
+      CANCELLED: "Cancelado",
+    };
+    const serviceTitle = previous.expand?.service?.title ?? "Tu proyecto";
+    await createClientNotification({
+      recipientId: String(previous.client),
+      orderId,
+      type: "STATUS",
+      message: `${serviceTitle} ahora está ${statusLabels[status].toLowerCase()}.`,
+      href: `/dashboard/chats/${orderId}`,
+      email: previous.expand?.client?.email ?? "",
+    });
+  } catch (error) {
+    console.error("No se pudo crear la notificación del cambio de estado.", error);
+  }
   revalidatePath("/admin/orders");
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard", "layout");
   revalidatePath("/dashboard/orders");
   revalidatePath("/dashboard/chats");
   return record;

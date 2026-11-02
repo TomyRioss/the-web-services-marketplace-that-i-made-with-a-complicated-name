@@ -27,7 +27,24 @@ export default async function OrderChatPage({
           orderTitle={thread.order.serviceTitle}
           statusLabel={meta.label}
           statusClass={meta.className}
+          communicationPreference={thread.order.communicationPreference}
+          sessionRole={thread.sessionRole}
           initialMessages={thread.messages}
+          paymentPanel={{
+            role: thread.sessionRole,
+            orderStatus: thread.order.status,
+            isCustom: thread.order.isCustom,
+            servicePriceArs: thread.order.priceArs,
+            servicePriceUsd: thread.order.priceUsd,
+            advancePaymentPercent: thread.order.advancePaymentPercent,
+            promotionActive: thread.order.promotionActive,
+            promotionPriceArs: thread.order.promotionPriceArs,
+            requests: thread.paymentRequests,
+            requestsError: thread.paymentRequestsError,
+          }}
+          reviewPanel={thread.reviewPanel}
+          closePanel={thread.closePanel}
+          deliveryPanel={thread.deliveryPanel ? { role: thread.sessionRole, ...thread.deliveryPanel } : null}
         />
       </div>
     </main>

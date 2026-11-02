@@ -19,6 +19,15 @@ Que el cliente pueda reconocer si su pedido espera un desarrollador o ya tiene u
 - Se usa la paleta del proyecto indicada por el usuario, incluido el acento lima `#C9E94F`, y Michroma para encabezados y CTA.
 - El estado vacio de pedidos activos conserva su accion para crear un pedido.
 
+## Invariantes de la ficha del equipo
+
+- La ficha del pedido muestra por separado la preferencia de comunicacion del cliente y la nota guardada al delegar.
+- La nota de delegacion mostrada corresponde al valor persistido en el pedido; si no existe, la ficha indica que no hay nota.
+
+## Registro de regresion
+
+- B1|2026-11-02|La ficha del equipo no presentaba la preferencia de comunicacion como dato independiente|V1
+
 ## Validacion
 
 - Revisar pedidos sin asignacion y asignados en el dashboard y en Mis pedidos, en escritorio y movil.

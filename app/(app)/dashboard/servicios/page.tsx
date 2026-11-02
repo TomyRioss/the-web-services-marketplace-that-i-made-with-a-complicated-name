@@ -1,10 +1,8 @@
 import { Clock, Code2, ImageOff } from "lucide-react";
 import { getActiveServices } from "@/app/actions/marketplace";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { ServiceCardActions } from "./ServiceCardActions";
-
-const currencyArs = new Intl.NumberFormat("es-AR");
+import { ServicePrice } from "@/app/marketplace/ServicePrice";
 
 export default async function DashboardServicesPage() {
   const { services, unavailable } = await getActiveServices()
@@ -40,16 +38,14 @@ export default async function DashboardServicesPage() {
                 <CardContent className="flex flex-1 flex-col gap-3">
                   <div className="flex items-start justify-between gap-3">
                     <h2 className="font-semibold leading-snug">{service.title}</h2>
-                    <Badge variant="secondary">${currencyArs.format(service.priceUsd)} USD</Badge>
+                    <ServicePrice service={service} />
                   </div>
                   <p className="line-clamp-3 text-sm text-muted-foreground">{service.description}</p>
                   <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-2">
                     <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
                       <Clock className="size-3.5" />
                       {service.deliveryDays} días
-                      <span className="text-foreground/40">·</span>
-                      ${currencyArs.format(service.priceArs)} ARS
-                    </span>
+</span>
                     <ServiceCardActions serviceId={service.id} />
                   </div>
                 </CardContent>

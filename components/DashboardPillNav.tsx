@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Bell, ChevronDown, ClipboardList, Headset, LogOut, MessageCircle, Shield, Star, Store } from "lucide-react";
+import { ChevronDown, ClipboardList, Headset, LogOut, MessageCircle, Shield, Star, Store } from "lucide-react";
 import { signOut } from "@/app/actions/auth";
 import { BrandLogo } from "@/components/BrandLogo";
 import SpecularButton from "@/components/SpecularButton";
+import { NotificationBell } from "@/components/NotificationBell";
+import type { DashboardNotification } from "@/lib/notification-types";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,18 +21,31 @@ export type DashboardNavItem = {
   active: boolean;
 };
 
+const roleLabels: Record<string, string> = {
+  CLIENTE: "Cliente",
+  DEV: "Desarrollador",
+  ADMIN: "Administrador",
+  OWNER: "Propietario",
+};
+
 export function DashboardPillNav({
   title,
   items,
+  rightItems = [],
   marketplace = false,
   user,
   role,
+  notifications = [],
+  unreadNotifications = 0,
 }: {
   title: string;
   items: DashboardNavItem[];
+  rightItems?: DashboardNavItem[];
   marketplace?: boolean;
   user?: { fullName: string; email: string };
   role?: string;
+  notifications?: DashboardNotification[];
+  unreadNotifications?: number;
 }) {
   const pillRef = useRef<HTMLDivElement>(null);
   const [spacerHeight, setSpacerHeight] = useState(134);
@@ -50,12 +65,12 @@ export function DashboardPillNav({
     return () => observer.disconnect();
   }, []);
 
-  const navItems = items.map(({ href, label, active }) => (
+  const renderNavItem = ({ href, label, active }: DashboardNavItem) => (
     <li key={href} className="shrink-0">
       <Link
         href={href}
         aria-current={active ? "page" : undefined}
-        className={`group relative flex min-h-10 cursor-pointer items-center overflow-hidden rounded-full px-3 text-xs font-medium outline-none transition-colors duration-200 hover:text-black focus-visible:ring-2 focus-visible:ring-accent-green focus-visible:ring-offset-2 focus-visible:ring-offset-[#171717] md:px-4 md:text-sm ${active ? "text-black" : "text-white"}`}
+        className={`group relative flex min-h-10 cursor-pointer items-center overflow-hidden rounded-full px-3 text-xs font-medium outline-none transition-colors duration-200 hover:text-black focus-visible:ring-2 focus-visible:ring-accent-green focus-visible:ring-offset-2 focus-visible:ring-offset-[#171717] ${marketplace ? "md:px-2" : "md:px-4"} md:text-sm ${active ? "text-black" : "text-white"}`}
       >
         <span
           aria-hidden="true"
@@ -72,7 +87,9 @@ export function DashboardPillNav({
         </span>
       </Link>
     </li>
-  ));
+  );
+  const navItems = items.map(renderNavItem);
+  const rightNavItems = rightItems.map(renderNavItem);
 
   return (
     <nav aria-label={title} className="relative w-full shrink-0" style={{ height: `${spacerHeight}px` }}>
@@ -99,6 +116,11 @@ export function DashboardPillNav({
                 </span>
               </Link>
             </div>
+            {role && ["OWNER", "ADMIN", "DEV"].includes(role) && (
+              <ul aria-label="Secciones del panel" className="order-5 flex w-full basis-full list-none items-center gap-1 overflow-x-auto p-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:order-none md:w-auto md:min-w-0 md:basis-auto md:max-w-[min(36vw,460px)]">
+                {navItems}
+              </ul>
+            )}
           </>
         ) : (
           <ul className="flex min-w-0 flex-1 list-none items-center gap-1 overflow-x-auto p-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:col-start-1 md:row-start-1">
@@ -114,7 +136,7 @@ export function DashboardPillNav({
           <BrandLogo inverse />
         </Link>
 
-        {marketplace && (
+        {marketplace && !["OWNER", "ADMIN"].includes(role ?? "") && (
           <button
             type="button"
             disabled
@@ -131,14 +153,11 @@ export function DashboardPillNav({
 
         {marketplace && (
           <div className="relative z-30 flex shrink-0 items-center gap-2 xl:absolute xl:right-4 xl:top-1/2 xl:-translate-y-1/2">
-            <Link
-              href="/dashboard/notificaciones"
-              aria-label="Notificaciones"
-              title="Notificaciones"
-              className="inline-flex size-12 shrink-0 cursor-pointer items-center justify-center rounded-full text-accent-green transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-green"
-            >
-              <Bell aria-hidden="true" className="size-5" />
-            </Link>
+            <NotificationBell
+              key={`${unreadNotifications}:${notifications.map((notification) => `${notification.id}-${notification.read}`).join(",")}`}
+              initialNotifications={notifications}
+              initialUnreadCount={unreadNotifications}
+            />
             <DropdownMenu>
               <DropdownMenuTrigger
               render={
@@ -181,6 +200,12 @@ export function DashboardPillNav({
                   <ClipboardList aria-hidden="true" className="text-accent-green" />
                   Mis Pedidos
                 </DropdownMenuItem>
+                {role && ["OWNER", "ADMIN", "DEV"].includes(role) && (
+                  <DropdownMenuItem render={<Link href="/dashboard/staff" />}>
+                    <ClipboardList aria-hidden="true" className="text-accent-green" />
+                    Pedidos del equipo
+                  </DropdownMenuItem>
+                )}
                 {(role === "OWNER" || role === "ADMIN") && (
                   <DropdownMenuItem render={<Link href="/admin" />}>
                     <Shield aria-hidden="true" className="text-accent-green" />
@@ -204,6 +229,16 @@ export function DashboardPillNav({
 
         {!marketplace && (
           <div className="ml-auto flex shrink-0 items-center gap-1 border-l border-white/10 pl-2 md:col-start-3 md:row-start-1 md:justify-self-end">
+            {rightNavItems.length > 0 && (
+              <ul className="flex list-none items-center gap-1 p-0">
+                {rightNavItems}
+              </ul>
+            )}
+            {role && roleLabels[role] && (
+              <span className="px-2 text-xs font-medium text-accent-green md:text-sm">
+                {roleLabels[role]}
+              </span>
+            )}
             <form action={signOut}>
               <button
                 type="submit"

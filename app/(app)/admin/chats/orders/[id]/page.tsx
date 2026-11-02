@@ -7,7 +7,7 @@ import { getSession } from "@/lib/auth/session";
 export default async function AdminOrderChatPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await getSession();
-  if (session?.role === "DEV") redirect(`/dashboard/chats/${id}`);
+  if (session?.role === "DEV") redirect(`/dashboard/staff/${id}`);
   const thread = await getChatThread(id).catch(() => notFound());
   const status = STATUS_META[thread.order.status];
   return (
@@ -18,7 +18,23 @@ export default async function AdminOrderChatPage({ params }: { params: Promise<{
           orderTitle={thread.order.serviceTitle}
           statusLabel={status.label}
           statusClass={status.className}
+          communicationPreference={thread.order.communicationPreference}
+          sessionRole={thread.sessionRole}
           initialMessages={thread.messages}
+          paymentPanel={{
+            role: thread.sessionRole,
+            orderStatus: thread.order.status,
+            isCustom: thread.order.isCustom,
+            servicePriceArs: thread.order.priceArs,
+            servicePriceUsd: thread.order.priceUsd,
+            advancePaymentPercent: thread.order.advancePaymentPercent,
+            promotionActive: thread.order.promotionActive,
+            promotionPriceArs: thread.order.promotionPriceArs,
+            requests: thread.paymentRequests,
+            requestsError: thread.paymentRequestsError,
+          }}
+          closePanel={thread.closePanel}
+          deliveryPanel={thread.deliveryPanel ? { role: thread.sessionRole, ...thread.deliveryPanel } : null}
           backHref="/admin/chats"
         />
       </div>

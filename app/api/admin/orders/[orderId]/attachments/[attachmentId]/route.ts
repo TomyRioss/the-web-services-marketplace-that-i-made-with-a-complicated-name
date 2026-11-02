@@ -9,12 +9,20 @@ export async function GET(
 ) {
   const session = await getSession();
   if (!session) return new Response("No autorizado", { status: 401 });
-  if (session.role !== "OWNER" && session.role !== "ADMIN") return new Response("No autorizado", { status: 403 });
-
   const { orderId, attachmentId } = await params;
   if (![orderId, attachmentId].every((id) => /^[a-zA-Z0-9]{15}$/.test(id))) return new Response("No encontrado", { status: 404 });
 
   const pb = await ensurePocketBaseAdmin();
+  if (session.role === "DEV") {
+    try {
+      const order = await pb.collection("ttmcobuild_orders").getOne(orderId);
+      if (String(order.assignedDev ?? "") !== session.userId) return new Response("No autorizado", { status: 403 });
+    } catch {
+      return new Response("No encontrado", { status: 404 });
+    }
+  } else if (session.role !== "OWNER" && session.role !== "ADMIN") {
+    return new Response("No autorizado", { status: 403 });
+  }
   let attachment;
   try {
     attachment = await pb.collection("ttmcobuild_order_attachments").getOne(attachmentId);

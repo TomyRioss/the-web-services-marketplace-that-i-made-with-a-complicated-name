@@ -2,6 +2,7 @@ import "server-only";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import type { Role } from "@/lib/data-types";
+import { getProfileById } from "@/lib/profiles";
 
 const SESSION_COOKIE = "session";
 const SESSION_DURATION_SECONDS = 60 * 60 * 24 * 7; // 7 days
@@ -31,12 +32,19 @@ export async function getSession(): Promise<SessionPayload | null> {
   const token = cookieStore.get(SESSION_COOKIE)?.value;
   if (!token) return null;
 
+  let payload: SessionPayload;
   try {
-    const { payload } = await jwtVerify<SessionPayload>(token, secret);
-    return { userId: payload.userId, role: payload.role };
+    ({ payload } = await jwtVerify<SessionPayload>(token, secret));
   } catch {
     return null;
   }
+  if (!payload.userId) return null;
+
+  // The role in an existing JWT can be stale after an admin changes access.
+  const profile = await getProfileById(payload.userId);
+  if (!profile) return null;
+
+  return { userId: profile.id, role: profile.role };
 }
 
 export async function clearSession() {

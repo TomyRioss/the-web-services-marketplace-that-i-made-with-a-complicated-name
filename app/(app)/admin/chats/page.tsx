@@ -5,9 +5,11 @@ import { getSession } from "@/lib/auth/session";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { STATUS_META, formatDateTime } from "../../dashboard/ui-helpers";
+import { redirect } from "next/navigation";
 
 export default async function TeamChatsPage() {
   const session = await getSession();
+  if (session?.role === "DEV") redirect("/dashboard/staff");
   const [orders, contacts] = await Promise.all([
     getTeamChatOrders(),
     session?.role === "OWNER" || session?.role === "ADMIN" ? getTeamChatContacts() : Promise.resolve([]),
@@ -17,7 +19,7 @@ export default async function TeamChatsPage() {
     <main className="px-4 py-8 sm:px-8 sm:py-12">
       <div className="w-full max-w-none">
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Chats del equipo</h1>
-        <p className="mt-2 text-muted-foreground">Conversaciones de pedidos y contactos de clientes.</p>
+        <p className="mt-2 text-muted-foreground">Mensajes y comprobantes de clientes, gestionados por el equipo.</p>
 
         <section className="mt-8">
           <h2 className="mb-3 text-lg font-semibold">Chats por pedido</h2>

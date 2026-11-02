@@ -1,5 +1,6 @@
 export type Role = "CLIENTE" | "DEV" | "ADMIN" | "OWNER";
-export type OrderStatus = "PENDING" | "IN_PROGRESS" | "DONE" | "CANCELLED";
+export type CommunicationPreference = "TALK_TO_ME" | "AUTONOMOUS";
+export type OrderStatus = "PENDING" | "IN_PROGRESS" | "REVIEW" | "APPROVED" | "DONE" | "CANCELLED";
 
 export type Profile = {
   id: string;
@@ -20,6 +21,9 @@ export type Service = {
   description: string;
   priceArs: number;
   priceUsd: number;
+  advancePaymentPercent: number;
+  promotionActive: boolean;
+  promotionPriceArs: number | null;
   deliveryDays: number;
   category: string;
   portfolioUrls: string[];
