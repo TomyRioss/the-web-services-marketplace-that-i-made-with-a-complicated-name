@@ -7,7 +7,9 @@ import { signUp, type AuthState } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/password-input";
 import { BrandLogo } from "@/components/BrandLogo";
+import CursorGrid from "@/components/ui/CursorGrid";
 
 const initialState: AuthState = { error: null };
 const inputClassName =
@@ -31,8 +33,24 @@ export function RegisterForm({ googleError }: { googleError?: string }) {
   return (
     <main className="flex min-h-screen flex-col items-center bg-[#191919] px-4 pt-8 pb-10 text-white sm:pt-12 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(420px,0.9fr)] lg:grid-rows-[1fr_auto] lg:items-center lg:gap-x-[clamp(3rem,7vw,8rem)] lg:px-[clamp(3rem,8vw,8rem)] lg:py-8">
       <aside aria-labelledby="register-promo-title" className="relative hidden min-h-[calc(100svh-4rem)] flex-col justify-center border-r border-white/10 pr-10 lg:row-span-2 lg:flex xl:pr-16">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+          <CursorGrid
+            cellSize={44}
+            color="#C9E94F"
+            gridColor="#C9E94F"
+            radius={132}
+            maxOpacity={0.38}
+            fillOpacity={0.035}
+            gridOpacity={0.045}
+            spotlight={0.62}
+            clickPulse
+            edgeFade={0.42}
+            intro={false}
+            dpr={1}
+          />
+        </div>
         <div aria-hidden="true" className="pointer-events-none absolute -left-24 top-1/4 size-80 rounded-full bg-[#C9E94F]/[0.06] blur-3xl" />
-        <div className="relative max-w-xl">
+        <div className="relative z-10 max-w-xl">
           <h2 id="register-promo-title" className="max-w-lg text-4xl font-semibold leading-[1.13] tracking-[-0.035em] xl:text-5xl">
             Tu próximo proyecto <span className="text-[#C9E94F]">empieza acá.</span>
           </h2>
@@ -134,7 +152,7 @@ export function RegisterForm({ googleError }: { googleError?: string }) {
                   </div>
                   <div>
                     <Label className="sr-only" htmlFor="password">Contraseña</Label>
-                    <Input className={inputClassName} id="password" name="password" type="password" required minLength={6} autoComplete="new-password" placeholder="Contraseña, mínimo 6 caracteres" />
+                    <PasswordInput className={inputClassName} id="password" name="password" required minLength={6} autoComplete="new-password" placeholder="Contraseña, mínimo 6 caracteres" />
                   </div>
                   {state.error && (
                     <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-red-200" role="alert">

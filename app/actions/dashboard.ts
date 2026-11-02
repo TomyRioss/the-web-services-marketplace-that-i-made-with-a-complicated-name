@@ -4,8 +4,7 @@ import { revalidatePath } from "next/cache";
 import { ensurePocketBaseAdmin, pbFilterValue, toDate } from "@/lib/pocketbase";
 import { getSession } from "@/lib/auth/session";
 import type { OrderStatus, Role } from "@/lib/data-types";
-
-const TEAM_ROLES: string[] = ["OWNER", "ADMIN", "DEV"];
+import { getDirectChatList } from "@/app/actions/team-chats";
 
 type PBRecord = {
   id: string;
@@ -16,6 +15,8 @@ type PBRecord = {
   authorRole?: string;
   message?: string;
   status?: string;
+  isCustom?: boolean;
+  assignedDev?: string;
   fullName?: string;
   email?: string;
   createdAt?: string;
@@ -35,6 +36,7 @@ export type DashboardOrder = {
   createdAt: Date;
   updatedAt: Date;
   clientId: string;
+  assignedDevId: string;
 };
 
 export type ChatMessage = {
@@ -51,12 +53,13 @@ function mapOrder(record: PBRecord): DashboardOrder {
   return {
     id: record.id,
     serviceId: String(record.service),
-    serviceTitle: record.expand?.service?.title ?? "Servicio eliminado",
+    serviceTitle: record.expand?.service?.title ?? (record.isCustom ? "Pedido personalizado" : "Servicio eliminado"),
     message: record.message ?? "",
     status: record.status as OrderStatus,
     createdAt: toDate(record.createdAt ?? ""),
     updatedAt: toDate(record.updatedAt ?? record.createdAt ?? ""),
     clientId: String(record.client),
+    assignedDevId: String(record.assignedDev ?? ""),
   };
 }
 
@@ -69,7 +72,8 @@ async function requireSession() {
 async function fetchOrders(session: { userId: string; role: Role }, statusFilter?: string) {
   const pb = await ensurePocketBaseAdmin();
   const parts: string[] = [];
-  if (!TEAM_ROLES.includes(session.role)) parts.push(`client = ${pbFilterValue(session.userId)}`);
+  if (session.role === "DEV") parts.push(`assignedDev = ${pbFilterValue(session.userId)}`);
+  else if (session.role !== "OWNER" && session.role !== "ADMIN") parts.push(`client = ${pbFilterValue(session.userId)}`);
   if (statusFilter) parts.push(statusFilter);
 
   const options: Record<string, unknown> = { expand: "service", sort: "-createdAt" };
@@ -109,13 +113,17 @@ async function getOrderOrFail(session: { userId: string; role: Role }, orderId: 
   const pb = await ensurePocketBaseAdmin();
   let record: PBRecord;
   try {
-    record = (await pb.collection("ttmcobuild_orders").getOne(orderId, { expand: "service" })) as unknown as PBRecord;
+    record = (await pb.collection("ttmcobuild_orders").getOne(orderId, { expand: "service,assignedDev" })) as unknown as PBRecord;
   } catch (error) {
     if (error && typeof error === "object" && "status" in error && error.status === 404) throw new Error("Pedido inexistente");
     throw error;
   }
   const order = mapOrder(record);
-  if (order.clientId !== session.userId && !TEAM_ROLES.includes(session.role)) throw new Error("No autorizado");
+  const canAccess = order.clientId === session.userId
+    || session.role === "OWNER"
+    || session.role === "ADMIN"
+    || (session.role === "DEV" && order.assignedDevId === session.userId);
+  if (!canAccess) throw new Error("No autorizado");
   return order;
 }
 
@@ -186,7 +194,10 @@ export async function sendChatMessage(orderId: string, message: string) {
 }
 
 export type ChatListItem = {
-  orderId: string;
+  kind: "order" | "user";
+  orderId?: string;
+  contactId?: string;
+  contactName?: string;
   serviceTitle: string;
   orderStatus: OrderStatus;
   orderCreatedAt: Date;
@@ -213,11 +224,12 @@ export async function getChatList(): Promise<ChatListItem[]> {
     byOrder.set(key, list);
   }
 
-  return orders
+  const orderChats = orders
     .map((order) => {
       const list = byOrder.get(order.id) ?? [];
       const last = list[list.length - 1];
       return {
+        kind: "order" as const,
         orderId: order.id,
         serviceTitle: order.serviceTitle,
         orderStatus: order.status,
@@ -232,4 +244,18 @@ export async function getChatList(): Promise<ChatListItem[]> {
           : null,
       };
     });
+  const directChats = await getDirectChatList();
+  return [
+    ...orderChats,
+    ...directChats.map((chat) => ({
+      kind: "user" as const,
+      contactId: chat.contactId,
+      contactName: chat.contactName,
+      serviceTitle: `Chat con ${chat.contactName}`,
+      orderStatus: "IN_PROGRESS" as OrderStatus,
+      orderCreatedAt: chat.updatedAt,
+      messageCount: chat.messageCount,
+      lastMessage: { text: chat.lastMessage, authorName: chat.lastAuthorName, createdAt: chat.updatedAt },
+    })),
+  ].sort((a, b) => (b.lastMessage?.createdAt ?? b.orderCreatedAt).getTime() - (a.lastMessage?.createdAt ?? a.orderCreatedAt).getTime());
 }

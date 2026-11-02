@@ -18,7 +18,7 @@ export default async function OrdersPage({
 
   return (
     <main className="px-4 py-10 sm:px-8 sm:py-14">
-      <div className="mx-auto max-w-5xl">
+      <div className="w-full max-w-none">
         <h1 className="text-balance text-2xl font-semibold tracking-tight sm:text-3xl">Mis pedidos</h1>
 
         <div className="mt-6 flex flex-wrap gap-2 border-b border-foreground/10 pb-4" role="tablist" aria-label="Filtro de pedidos">

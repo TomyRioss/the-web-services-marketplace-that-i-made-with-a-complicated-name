@@ -46,3 +46,15 @@ next-env.d.ts
 # local QA credentials, never commit
 QA-Accounts.md
 .local-dev/
+/docs/credentials.md
+
+# local agent and browser artifacts
+/.agents/
+/.claude/
+/.windsurf/
+/.playwright-cli/
+/.playwright-mcp/
+/dogfood-output/
+/pb-dumps/
+/wsl.localhost/
+/snap*.txt

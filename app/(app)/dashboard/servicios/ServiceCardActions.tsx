@@ -30,7 +30,7 @@ export function ServiceCardActions({ serviceId }: { serviceId: string }) {
         Pedir
       </Button>
       <Button
-        render={<Link href={`/marketplace/${serviceId}`} />}
+        render={<Link href={`/dashboard/marketplace/${serviceId}`} />}
         nativeButton={false}
         variant="outline"
         size="sm"

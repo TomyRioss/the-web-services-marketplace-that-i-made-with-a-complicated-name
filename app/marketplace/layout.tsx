@@ -27,8 +27,8 @@ export default async function MarketplaceLayout({
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <div aria-hidden="true" className="h-[72px] shrink-0 bg-black md:h-24 md:bg-secondary/40" />
-      <header className="fixed inset-x-0 top-0 z-50">
+      <div aria-hidden="true" className="h-[108px] shrink-0 bg-black md:h-[120px] md:bg-secondary/40" />
+      <header className="fixed inset-x-0 top-9 z-50">
         <div>
           <div className="flex h-[72px] w-full items-center justify-between bg-secondary/40 px-3 md:hidden">
             <Link href="/marketplace" aria-label="Devta">

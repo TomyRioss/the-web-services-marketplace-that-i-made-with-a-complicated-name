@@ -22,7 +22,7 @@ export function Gallery({ title, images }: { title: string; images: string[] }) 
         <img
           src={images[index]}
           alt={title}
-          className="aspect-video w-full rounded-xl object-cover ring-1 ring-foreground/10"
+          className="aspect-[2.35/1] w-full rounded-xl object-cover ring-1 ring-foreground/10"
         />
 
         {images.length > 1 && (
@@ -56,7 +56,7 @@ export function Gallery({ title, images }: { title: string; images: string[] }) 
               onClick={() => setIndex(i)}
               aria-label={`Ver imagen ${i + 1}`}
               className={cn(
-                "aspect-video overflow-hidden rounded-lg ring-1 transition-opacity",
+                "aspect-[2.3/1] overflow-hidden rounded-lg ring-1 transition-opacity",
                 i === index ? "ring-2 ring-primary" : "ring-foreground/10 opacity-70 hover:opacity-100"
               )}
             >

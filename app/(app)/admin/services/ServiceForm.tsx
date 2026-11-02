@@ -16,6 +16,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { createService, updateService, type ServiceReference } from "@/app/actions/marketplace";
+import { inferServiceCategory, SERVICE_CATEGORIES } from "@/lib/service-categories";
 import type { Service } from "@/lib/data-types";
 
 export function ServiceForm({ service }: { service?: Service }) {
@@ -26,6 +27,7 @@ export function ServiceForm({ service }: { service?: Service }) {
   const [priceArs, setPriceArs] = useState(String(service?.priceArs ?? ""));
   const [priceUsd, setPriceUsd] = useState(String(service?.priceUsd ?? ""));
   const [deliveryDays, setDeliveryDays] = useState(String(service?.deliveryDays ?? ""));
+  const [category, setCategory] = useState(service?.category || inferServiceCategory(service?.title, service?.description));
   const [portfolioUrls, setPortfolioUrls] = useState<string[]>(
     (service?.portfolioUrls as string[] | undefined) ?? []
   );
@@ -121,6 +123,7 @@ export function ServiceForm({ service }: { service?: Service }) {
       priceArs: Number(priceArs),
       priceUsd: Number(priceUsd),
       deliveryDays: Number(deliveryDays),
+      category,
       portfolioUrls,
       references,
     };
@@ -163,6 +166,13 @@ export function ServiceForm({ service }: { service?: Service }) {
               rows={3}
               placeholder="Qué incluye el servicio"
             />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="service-category">Categoría</Label>
+            <select id="service-category" value={category} onChange={(e) => setCategory(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+              {SERVICE_CATEGORIES.map((item) => <option key={item.slug} value={item.slug}>{item.title}</option>)}
+            </select>
           </div>
 
           <div className="grid grid-cols-3 gap-3">

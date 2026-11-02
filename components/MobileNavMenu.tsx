@@ -14,10 +14,10 @@ import { ChevronRight, Code2, Minus, PanelsTopLeft, Plus, ShoppingBag, Workflow 
 import { StaggeredMenuToggle } from "@/components/StaggeredMenu";
 
 const serviceLinks = [
-  { label: "Programación Web", Icon: Code2 },
-  { label: "Automatización", Icon: Workflow },
-  { label: "SaaS desde cero", Icon: PanelsTopLeft },
-  { label: "Tienda Online", Icon: ShoppingBag },
+  { label: "Programación Web", slug: "programacion-web", Icon: Code2 },
+  { label: "Automatización", slug: "automatizacion", Icon: Workflow },
+  { label: "SaaS desde cero", slug: "saas-desde-cero", Icon: PanelsTopLeft },
+  { label: "Tienda Online", slug: "tienda-online", Icon: ShoppingBag },
 ];
 
 function MenuLink({ href, children, onClick }: { href: string; children: React.ReactNode; onClick: () => void }) {
@@ -33,7 +33,7 @@ function MenuLink({ href, children, onClick }: { href: string; children: React.R
   );
 }
 
-function ServicesMenu({ onNavigate, authenticated }: { onNavigate: () => void; authenticated: boolean }) {
+function ServicesMenu({ onNavigate, basePath }: { onNavigate: () => void; basePath: string }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -50,10 +50,10 @@ function ServicesMenu({ onNavigate, authenticated }: { onNavigate: () => void; a
       </button>
       {expanded && (
         <div id="mobile-service-links" className="grid gap-3 pb-4 pt-1" aria-label="Servicios disponibles">
-          {serviceLinks.map(({ label, Icon }) => (
+          {serviceLinks.map(({ label, slug, Icon }) => (
             <a
               key={label}
-              href={authenticated ? "/marketplace" : "/register"}
+              href={`${basePath}/${slug}`}
               onClick={onNavigate}
               className="group flex min-h-[5.25rem] items-center gap-4 rounded-xl border border-white/10 bg-white/[0.04] px-4 text-left text-white transition-colors hover:border-accent-green/40 hover:bg-white/[0.07] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-green"
             >
@@ -119,13 +119,15 @@ export function MobileNavMenu({ role }: { role?: string }) {
             <>
               <MenuLink href="/dashboard" onClick={() => setOpen(false)}>Mi panel</MenuLink>
               <MenuLink href="/portfolio" onClick={() => setOpen(false)}>Portfolio</MenuLink>
-              <ServicesMenu authenticated={authenticated} onNavigate={() => setOpen(false)} />
+              <ServicesMenu onNavigate={() => setOpen(false)} basePath="/dashboard/marketplace" />
+              <MenuLink href="/personalizado" onClick={() => setOpen(false)}>Personalizado</MenuLink>
               {role === "OWNER" && <MenuLink href="/admin/orders" onClick={() => setOpen(false)}>Administración</MenuLink>}
             </>
           ) : (
             <>
               <MenuLink href="/portfolio" onClick={() => setOpen(false)}>Portfolio</MenuLink>
-              <ServicesMenu authenticated={authenticated} onNavigate={() => setOpen(false)} />
+              <ServicesMenu onNavigate={() => setOpen(false)} basePath="/marketplace" />
+              <MenuLink href="/personalizado" onClick={() => setOpen(false)}>Personalizado</MenuLink>
             </>
           )}
         </nav>

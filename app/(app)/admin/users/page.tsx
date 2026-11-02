@@ -10,6 +10,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { FaWhatsapp } from "react-icons/fa";
+import { getSession } from "@/lib/auth/session";
+import { redirect } from "next/navigation";
 
 const roleLabel: Record<string, string> = {
   CLIENTE: "Cliente",
@@ -19,11 +21,13 @@ const roleLabel: Record<string, string> = {
 };
 
 export default async function AdminUsersPage() {
+  const session = await getSession();
+  if (session?.role !== "OWNER") redirect(session ? "/admin/orders" : "/login");
   const users = await getAllUsers();
 
   return (
-    <main className="flex-1 overflow-y-auto px-4 py-10 pb-24 sm:px-8 sm:py-14 md:pb-14">
-      <div className="mx-auto max-w-5xl">
+    <main className="flex-1 overflow-y-auto px-4 py-10 sm:px-8 sm:py-14">
+      <div className="w-full max-w-none">
         <h1 className="text-balance text-2xl font-semibold tracking-tight sm:text-3xl">
           Usuarios
         </h1>

@@ -1,5 +1,5 @@
 import MarketplaceLayout from "./marketplace/layout";
-import MarketplacePage from "./marketplace/page";
+import HomePage from "./HomePage";
 import { getSession } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 
@@ -9,7 +9,7 @@ export default async function Home() {
 
   return (
     <MarketplaceLayout>
-      <MarketplacePage />
+      <HomePage />
     </MarketplaceLayout>
   );
 }

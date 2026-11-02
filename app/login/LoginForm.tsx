@@ -7,6 +7,7 @@ import { signIn, type AuthState } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/password-input";
 import { BrandLogo } from "@/components/BrandLogo";
 
 const initialState: AuthState = { error: null };
@@ -93,7 +94,7 @@ export function LoginForm({ googleError }: { googleError?: string }) {
                   <input type="hidden" name="email" value={email} />
                   <div>
                     <Label className="sr-only" htmlFor="password">Contraseña</Label>
-                    <Input className={inputClassName} id="password" name="password" type="password" required autoComplete="current-password" autoFocus placeholder="Tu contraseña" />
+                    <PasswordInput className={inputClassName} id="password" name="password" required autoComplete="current-password" autoFocus placeholder="Tu contraseña" />
                   </div>
                   {state.error && <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-red-200" role="alert">{state.error}</p>}
                   <Button type="submit" disabled={pending} className="mt-2 h-11 w-full rounded-md bg-[#C9E94F] font-sans text-sm text-[#191919] hover:bg-[#C9E94F]">

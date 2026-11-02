@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { ArrowLeft, Send } from "lucide-react";
-import { getChatThread, sendChatMessage, type ChatMessage } from "@/app/actions/dashboard";
+import { sendChatMessage, type ChatMessage } from "@/app/actions/dashboard";
+import { sendDirectChatMessage } from "@/app/actions/team-chats";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,14 +13,22 @@ import { cn } from "@/lib/utils";
 
 const timeFmt = new Intl.DateTimeFormat("es-AR", { hour: "2-digit", minute: "2-digit" });
 
+function formatTime(date: Date) {
+  return timeFmt.format(date).replaceAll("\u00a0", " ");
+}
+
 export function ChatThread({
   orderId,
+  directUserId,
+  backHref = "/dashboard/chats",
   orderTitle,
   statusLabel,
   statusClass,
   initialMessages,
 }: {
-  orderId: string;
+  orderId?: string;
+  directUserId?: string;
+  backHref?: string;
   orderTitle: string;
   statusLabel: string;
   statusClass: string;
@@ -30,41 +39,41 @@ export function ChatThread({
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const bottomRef = useRef<HTMLDivElement>(null);
-  const paused = useRef(false);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "nearest" });
   }, [messages.length]);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      if (paused.current || draft.trim()) return;
-      startTransition(async () => {
-        try {
-          const thread = await getChatThread(orderId);
-          setMessages((prev) => (prev.length === thread.messages.length ? prev : thread.messages));
-        } catch {
-          // The connection can blink; keep what we have and try again on the next tick.
-        }
-      });
-    }, 4000);
-    return () => clearInterval(timer);
-  }, [orderId, draft]);
+    if (!orderId && !directUserId) return;
+    const params = new URLSearchParams(
+      directUserId ? { contactId: directUserId } : { orderId: orderId! }
+    );
+    const source = new EventSource(`/api/chat/realtime?${params.toString()}`);
+    source.onmessage = (event) => {
+      const incoming = JSON.parse(event.data) as Omit<ChatMessage, "createdAt"> & { createdAt: string };
+      setMessages((prev) =>
+        prev.some((message) => message.id === incoming.id)
+          ? prev
+          : [...prev, { ...incoming, createdAt: new Date(incoming.createdAt) }]
+      );
+    };
+    return () => source.close();
+  }, [orderId, directUserId]);
 
   function handleSend() {
     const text = draft.trim();
     if (!text || isPending) return;
     setError(null);
-    paused.current = true;
     startTransition(async () => {
       try {
-        const created = await sendChatMessage(orderId, text);
+        const created = directUserId
+          ? await sendDirectChatMessage(directUserId, text)
+          : await sendChatMessage(orderId!, text);
         setMessages((prev) => [...prev, created]);
         setDraft("");
       } catch (e) {
         setError(e instanceof Error ? e.message : "No se pudo enviar el mensaje.");
-      } finally {
-        paused.current = false;
       }
     });
   }
@@ -75,7 +84,7 @@ export function ChatThread({
         <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-4">
           <div className="min-w-0">
             <Button
-              render={<Link href="/dashboard/chats" />}
+              render={<Link href={backHref} />}
               nativeButton={false}
               variant="ghost"
               size="sm"
@@ -115,7 +124,7 @@ export function ChatThread({
                 >
                   {message.message}
                 </div>
-                <span className="px-1 text-[11px] text-muted-foreground">{timeFmt.format(message.createdAt)}</span>
+                <span className="px-1 text-[11px] text-muted-foreground">{formatTime(message.createdAt)}</span>
               </div>
             ))
           )}

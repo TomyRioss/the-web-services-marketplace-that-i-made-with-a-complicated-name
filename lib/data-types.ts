@@ -21,6 +21,7 @@ export type Service = {
   priceArs: number;
   priceUsd: number;
   deliveryDays: number;
+  category: string;
   portfolioUrls: string[];
   references: { url: string; imageUrl?: string }[];
   active: boolean;
@@ -31,6 +32,7 @@ export type Service = {
 export type Order = {
   id: string;
   serviceId: string;
+  isCustom?: boolean;
   clientId: string;
   message: string;
   status: OrderStatus;

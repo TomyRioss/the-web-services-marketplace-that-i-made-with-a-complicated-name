@@ -13,7 +13,7 @@ export default async function DashboardServicesPage() {
 
   return (
     <main className="px-4 py-10 sm:px-8 sm:py-14">
-      <div className="mx-auto max-w-5xl">
+      <div className="w-full max-w-none">
         <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-background px-3 py-1 text-xs font-medium text-primary">
           <Code2 className="size-3.5" />
           Catálogo

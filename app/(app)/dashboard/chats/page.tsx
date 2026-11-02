@@ -11,7 +11,7 @@ export default async function ChatsPage() {
 
   return (
     <main className="px-4 py-10 sm:px-8 sm:py-14">
-      <div className="mx-auto max-w-5xl">
+      <div className="w-full max-w-none">
         <h1 className="text-balance text-2xl font-semibold tracking-tight sm:text-3xl">Chats</h1>
         <p className="mt-2 text-muted-foreground">
           Un chat interno por cada servicio que pediste, con el equipo.
@@ -27,8 +27,8 @@ export default async function ChatsPage() {
         ) : (
           <ul className="mt-8 flex flex-col gap-3">
             {chats.map((chat) => (
-              <li key={chat.orderId}>
-                <Link href={`/dashboard/chats/${chat.orderId}`} className="block group">
+              <li key={chat.kind === "order" ? chat.orderId : chat.contactId}>
+                <Link href={chat.kind === "order" ? `/dashboard/chats/${chat.orderId}` : `/dashboard/chats/users/${chat.contactId}`} className="block group">
                   <Card className="transition-colors hover:border-primary/40">
                     <CardContent className="flex flex-wrap items-center justify-between gap-3">
                       <div className="min-w-0 flex-1">
@@ -43,9 +43,11 @@ export default async function ChatsPage() {
                         {chat.messageCount > 0 && (
                           <span className="text-xs text-muted-foreground">{chat.messageCount} msj{chat.messageCount === 1 ? "" : "es"}</span>
                         )}
-                        <Badge className={STATUS_META[chat.orderStatus].className}>
-                          {STATUS_META[chat.orderStatus].label}
-                        </Badge>
+                        {chat.kind === "order" && (
+                          <Badge className={STATUS_META[chat.orderStatus].className}>
+                            {STATUS_META[chat.orderStatus].label}
+                          </Badge>
+                        )}
                         <MessageSquare className="size-4 text-muted-foreground transition-colors group-hover:text-primary" />
                       </div>
                     </CardContent>

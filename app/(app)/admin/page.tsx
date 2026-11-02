@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
+import { getSession } from "@/lib/auth/session";
 
-export default function AdminPage() {
-  redirect("/admin/orders");
+export default async function AdminPage() {
+  const session = await getSession();
+  redirect(session?.role === "DEV" ? "/admin/chats" : "/admin/orders");
 }

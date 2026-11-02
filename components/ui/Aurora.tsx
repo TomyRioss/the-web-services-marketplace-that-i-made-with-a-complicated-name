@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 
 export interface AuroraProps {
   colorStops?: string[];
@@ -284,6 +284,7 @@ const Aurora = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wakeRef = useRef<(() => void) | null>(null);
+  const [webglUnavailable, setWebglUnavailable] = useState(false);
   const stops = (Array.isArray(colorStops) ? colorStops : []).filter(Boolean).map(String).slice(0, MAX_STOPS);
   const settings: Settings = {
     stops: stops.length >= 2 ? stops : stops.length === 1 ? [stops[0], stops[0]] : ['#5227FF', '#7cff67'],
@@ -305,7 +306,6 @@ const Aurora = ({
     dpr
   };
   const settingsRef = useRef(settings);
-  settingsRef.current = settings;
 
   useEffect(() => {
     const container = containerRef.current;
@@ -317,10 +317,17 @@ const Aurora = ({
       depth: false,
       stencil: false
     });
-    if (!container || !canvas || !gl) return undefined;
+    if (!container || !canvas) return undefined;
+    if (!gl) {
+      setWebglUnavailable(true);
+      return undefined;
+    }
 
     const program = link(gl);
-    if (!program) return undefined;
+    if (!program) {
+      setWebglUnavailable(true);
+      return undefined;
+    }
     const u = program.uniforms;
 
     const buffer = gl.createBuffer();
@@ -363,6 +370,14 @@ const Aurora = ({
     let raf = 0;
     let last = 0;
     let visible = true;
+
+    const onContextLost = (event: Event) => {
+      event.preventDefault();
+      cancelAnimationFrame(raf);
+      raf = 0;
+      setWebglUnavailable(true);
+    };
+    canvas.addEventListener('webglcontextlost', onContextLost);
 
     const render = () => {
       const s = settingsRef.current;
@@ -504,6 +519,7 @@ const Aurora = ({
       window.removeEventListener('pointercancel', onPointerUp);
       document.documentElement.removeEventListener('pointerleave', onPointerLeave);
       document.removeEventListener('visibilitychange', onVisibility);
+      canvas.removeEventListener('webglcontextlost', onContextLost);
       gl.deleteProgram(program.program);
       gl.deleteBuffer(buffer);
       gl.deleteVertexArray(vao);
@@ -512,6 +528,7 @@ const Aurora = ({
   }, []);
 
   useEffect(() => {
+    settingsRef.current = settings;
     wakeRef.current?.();
   });
 
@@ -519,9 +536,12 @@ const Aurora = ({
     <div
       ref={containerRef}
       className={['relative h-full w-full overflow-hidden', className].filter(Boolean).join(' ')}
-      style={style}
+      style={webglUnavailable ? {
+        ...style,
+        backgroundImage: 'radial-gradient(ellipse at 50% 100%, rgb(201 233 79 / 14%), transparent 70%)'
+      } : style}
     >
-      <canvas ref={canvasRef} className="absolute inset-0 block h-full w-full" aria-hidden="true" />
+      <canvas ref={canvasRef} className="absolute inset-0 block h-full w-full" style={{ display: webglUnavailable ? 'none' : undefined }} aria-hidden="true" />
     </div>
   );
 };

@@ -7,6 +7,7 @@ import CardNav, { type CardNavItem } from "@/components/CardNav";
 
 export function SiteCardNav({ role }: { role?: string }) {
   const authenticated = Boolean(role);
+  const marketplaceHref = authenticated ? "/dashboard/marketplace" : "/marketplace";
   const items: CardNavItem[] = authenticated
     ? [
         {
@@ -17,7 +18,12 @@ export function SiteCardNav({ role }: { role?: string }) {
         {
           label: "Servicios",
           description: "Encontrá el servicio que necesita tu proyecto.",
-          links: [{ label: "Explorar servicios", href: "/marketplace" }],
+          links: [{ label: "Explorar servicios", href: marketplaceHref }],
+        },
+        {
+          label: "Personalizado",
+          description: "Contanos sobre el proyecto que tenés en mente.",
+          links: [{ label: "Pedir una propuesta", href: "/personalizado" }],
         },
         {
           label: "Mi cuenta",
@@ -43,7 +49,12 @@ export function SiteCardNav({ role }: { role?: string }) {
         {
           label: "Servicios",
           description: "Conocé las soluciones disponibles para tu proyecto.",
-          links: [{ label: "Explorar servicios", href: "/marketplace" }],
+          links: [{ label: "Explorar servicios", href: marketplaceHref }],
+        },
+        {
+          label: "Personalizado",
+          description: "Contanos sobre el proyecto que tenés en mente.",
+          links: [{ label: "Pedir una propuesta", href: "/personalizado" }],
         },
         {
           label: "Cuenta",
@@ -60,7 +71,7 @@ export function SiteCardNav({ role }: { role?: string }) {
       ariaLabel="Navegación principal"
       logo={<BrandLogo inverse />}
       logoAlt="Devta"
-      logoHref="/marketplace"
+      logoHref={authenticated ? "/dashboard" : "/marketplace"}
       items={items}
       cta={
         authenticated
